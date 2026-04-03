@@ -262,12 +262,7 @@ with tab2:
     st.write("Explore environmental data across cities with interactive markers and optional heatmap overlay.")
     
     # Prepare data for all cities
-    all_cities = [
-        "Ahmedabad", "Surat", "Mumbai", "Delhi", "Bangalore", 
-        "Chennai", "Kolkata", "Hyderabad", "Pune", "Jaipur",
-        "Lucknow", "Kanpur", "Nagpur", "Indore", "Thane",
-        "Bhopal", "Visakhapatnam", "Patna", "Vadodara", "Ghaziabad"
-    ]
+    all_cities = ["Ahmedabad", "Surat", "Mumbai"]
     cities_data = {}
     
     for city in all_cities:
@@ -294,11 +289,11 @@ with tab2:
             }
     
     # Create map centered on India
-    center_coords = (22.0, 78.0)  # Central India
+    center_coords = (22.0, 73.0)  # Central India
     env_map = create_environmental_map(
         cities_data=cities_data,
         center_location=center_coords,
-        zoom_level=5,
+        zoom_level=6,
         show_heatmap=show_heatmap
     )
     
@@ -314,9 +309,6 @@ with tab2:
     col4.markdown("🔴 **Unhealthy** (151-200)")
     col5.markdown("🟣 **Very Unhealthy** (201-300)")
     col6.markdown("🟤 **Hazardous** (301+)")
-    
-    # Display city count
-    st.info(f"📍 Displaying {len(all_cities)} cities across India")
 
 # ============ TAB 3: CSV ANALYSIS ============
 with tab3:
