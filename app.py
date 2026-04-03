@@ -82,7 +82,24 @@ def get_city_coordinates(city):
     coords = {
         "Ahmedabad": (23.0225, 72.5714),
         "Surat": (21.1702, 72.8311),
-        "Mumbai": (19.0760, 72.8777)
+        "Mumbai": (19.0760, 72.8777),
+        "Delhi": (28.6139, 77.2090),
+        "Bangalore": (12.9716, 77.5946),
+        "Chennai": (13.0827, 80.2707),
+        "Kolkata": (22.5726, 88.3639),
+        "Hyderabad": (17.3850, 78.4867),
+        "Pune": (18.5204, 73.8567),
+        "Jaipur": (26.9124, 75.7873),
+        "Lucknow": (26.8467, 80.9462),
+        "Kanpur": (26.4499, 80.3319),
+        "Nagpur": (21.1458, 79.0882),
+        "Indore": (22.7196, 75.8577),
+        "Thane": (19.2183, 72.9781),
+        "Bhopal": (23.2599, 77.4126),
+        "Visakhapatnam": (17.6868, 83.2185),
+        "Patna": (25.5941, 85.1376),
+        "Vadodara": (22.3072, 73.1812),
+        "Ghaziabad": (28.6692, 77.4538)
     }
     return coords.get(city, (22.0, 73.0))
 
@@ -170,7 +187,12 @@ st.subheader("Earth Intelligence Dashboard")
 st.write("Live environmental monitoring dashboard")
 
 st.sidebar.title("Control Panel")
-location = st.sidebar.selectbox("Select Location", ["Ahmedabad", "Surat", "Mumbai"])
+location = st.sidebar.selectbox("Select Location", [
+    "Ahmedabad", "Surat", "Mumbai", "Delhi", "Bangalore", 
+    "Chennai", "Kolkata", "Hyderabad", "Pune", "Jaipur",
+    "Lucknow", "Kanpur", "Nagpur", "Indore", "Thane",
+    "Bhopal", "Visakhapatnam", "Patna", "Vadodara", "Ghaziabad"
+])
 days = st.sidebar.slider("Number of Days", 5, 30, 7)
 use_real_data = st.sidebar.checkbox("Use Real Air Quality Data", value=False)
 show_heatmap = st.sidebar.checkbox("Show Pollution Heatmap", value=False)
@@ -240,7 +262,12 @@ with tab2:
     st.write("Explore environmental data across cities with interactive markers and optional heatmap overlay.")
     
     # Prepare data for all cities
-    all_cities = ["Ahmedabad", "Surat", "Mumbai"]
+    all_cities = [
+        "Ahmedabad", "Surat", "Mumbai", "Delhi", "Bangalore", 
+        "Chennai", "Kolkata", "Hyderabad", "Pune", "Jaipur",
+        "Lucknow", "Kanpur", "Nagpur", "Indore", "Thane",
+        "Bhopal", "Visakhapatnam", "Patna", "Vadodara", "Ghaziabad"
+    ]
     cities_data = {}
     
     for city in all_cities:
@@ -267,11 +294,11 @@ with tab2:
             }
     
     # Create map centered on India
-    center_coords = (22.0, 73.0)  # Central India
+    center_coords = (22.0, 78.0)  # Central India
     env_map = create_environmental_map(
         cities_data=cities_data,
         center_location=center_coords,
-        zoom_level=6,
+        zoom_level=5,
         show_heatmap=show_heatmap
     )
     
@@ -287,6 +314,9 @@ with tab2:
     col4.markdown("🔴 **Unhealthy** (151-200)")
     col5.markdown("🟣 **Very Unhealthy** (201-300)")
     col6.markdown("🟤 **Hazardous** (301+)")
+    
+    # Display city count
+    st.info(f"📍 Displaying {len(all_cities)} cities across India")
 
 # ============ TAB 3: CSV ANALYSIS ============
 with tab3:
