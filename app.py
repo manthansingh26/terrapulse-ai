@@ -5,102 +5,45 @@ from PIL import Image
 
 st.set_page_config(page_title="TerraPulse AI", layout="wide")
 
+# Thin and sleek style tweaks
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
+    :root {
+        --bg: #030712;
+        --card-bg: rgba(10, 20, 40, 0.75);
+        --panel-bg: rgba(5, 12, 30, 0.85);
+        --accent: #00d2ff;
+        --accent2: #007bff;
+    }
 
-body, .css-18ni7ap, .css-1d391kg {
-  font-family: 'Poppins', sans-serif !important;
-  color: #e6eefc !important;
-  background: radial-gradient(circle at 10% 10%, #0d1f41, #050a16 52%, #01050c 100%) !important;
-}
+    body {
+        background: linear-gradient(140deg, #02060f, #071b3a 60%, #030a18 100%);
+    }
 
-.stApp .block-container {
-  max-width: 1450px;
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(81, 144, 255, 0.18);
-  border-radius: 16px;
-  box-shadow: 0 16px 28px rgba(1, 4, 16, 0.74);
-  padding: 1.2rem 2rem;
-}
+    .main .block-container {
+        max-width: 1320px;
+        padding: 0.7rem 2rem 1.5rem;
+        background: transparent;
+    }
 
-.stApp header {
-  border-bottom: 1px solid rgba(90, 140, 255, 0.25);
-}
+    .css-1d391kg .element-container,
+    .css-18e3th9 {
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(90, 170, 255, 0.24);
+        background: var(--card-bg);
+        backdrop-filter: blur(8px);
+        border-radius: 18px;
+    }
 
-h1, h2, h3 {
-  color: #ebf4ff !important;
-  text-shadow: 0 0 16px rgba(17,169,255,0.46);
-}
+    .css-1v3fvcr {
+        background: var(--panel-bg) !important;
+        border-radius: 18px !important;
+        border: 1px solid rgba(140, 150, 220, 0.30) !important;
+    }
 
-h1 { animation: neon 2.4s infinite alternate; }
-
-@keyframes neon {
-  from { text-shadow: 0 0 14px rgba(0,180,255,0.72); }
-  to { text-shadow: 0 0 20px rgba(0,214,255,0.90), 0 0 32px rgba(0, 104, 255, 0.82); }
-}
-
-.stMetric > div {
-  background: rgba(5, 15, 36, 0.75) !important;
-  border: 1px solid rgba(16, 145, 255, 0.50) !important;
-  box-shadow: 0 8px 18px rgba(0,110,255,0.20);
-  border-radius: 14px;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-.stMetric > div:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0,150,255,0.45);
-}
-
-.stDataFrame > div,
-.css-18e3th9 {
-  border-radius: 16px !important;
-  border: 1px solid rgba(54,125,255,0.25) !important;
-  background: rgba(6, 15, 32, 0.78) !important;
-  box-shadow: 0 10px 26px rgba(0,0,0,0.35) !important;
-}
-
-button[kind='primary'], .stButton > button {
-  background: linear-gradient(110deg, #1d8fff, #00d2ff) !important;
-  border: none !important;
-  color: #001f3d !important;
-  font-weight: 700 !important;
-  box-shadow: 0 8px 18px rgba(0,120,255,0.55) !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-}
-
-button[kind='primary']:hover, .stButton > button:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 14px 26px rgba(0,150,255,0.70) !important;
-}
-
-.stTabs [role='tab'] {
-  border-radius: 10px;
-  border: 1px solid rgba(120, 170, 255, 0.25) !important;
-  background: rgba(8, 18, 35, 0.68) !important;
-  color: #bed6ff !important;
-  transition: all 0.2s ease;
-}
-.stTabs [role='tab'][aria-selected='true'] {
-  border-bottom: 3px solid #10a4ff !important;
-  background: rgba(0, 92, 230, 0.45) !important;
-  color: #fff !important;
-}
-
-.stApp .block-container:before {
-  content: "";
-  position: absolute;
-  left: 0; top: 0; width: 100%; height: 100%;
-  background: radial-gradient(circle at 20% 20%, rgba(0,160,255,0.08), transparent 30%),
-              radial-gradient(circle at 80% 15%, rgba(70,145,255,0.10), transparent 40%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-st.title("🌍 TerraPulse AI")
+    .stSidebar {
+        background: linear-gradient(170deg, #040814, #07172c 90%);
+        border-right: 1px solid rgba(100, 150, 255, 0.14);
     }
 
     .css-1d391kg h1, .css-1d391kg h2, .css-1d391kg h3 {
