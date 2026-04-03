@@ -5,6 +5,123 @@ from PIL import Image
 
 st.set_page_config(page_title="TerraPulse AI", layout="wide")
 
+# Thin and sleek style tweaks
+st.markdown("""
+<style>
+    :root {
+        --bg: #030712;
+        --card-bg: rgba(10, 20, 40, 0.75);
+        --panel-bg: rgba(5, 12, 30, 0.85);
+        --accent: #00d2ff;
+        --accent2: #007bff;
+    }
+
+    body {
+        background: linear-gradient(140deg, #02060f, #071b3a 60%, #030a18 100%);
+    }
+
+    .main .block-container {
+        max-width: 1320px;
+        padding: 0.7rem 2rem 1.5rem;
+        background: transparent;
+    }
+
+    .css-1d391kg .element-container,
+    .css-18e3th9 {
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(90, 170, 255, 0.24);
+        background: var(--card-bg);
+        backdrop-filter: blur(8px);
+        border-radius: 18px;
+    }
+
+    .css-1v3fvcr {
+        background: var(--panel-bg) !important;
+        border-radius: 18px !important;
+        border: 1px solid rgba(140, 150, 220, 0.30) !important;
+    }
+
+    .stSidebar {
+        background: linear-gradient(170deg, #040814, #07172c 90%);
+        border-right: 1px solid rgba(100, 150, 255, 0.14);
+    }
+
+    .css-1d391kg h1, .css-1d391kg h2, .css-1d391kg h3 {
+        color: #f3f9ff;
+        font-family: 'Poppins', 'Segoe UI', sans-serif;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+    }
+
+    .stMetric > div {
+        border-radius: 14px;
+        background: rgba(20, 40, 80, 0.6);
+        border: 1px solid rgba(0, 220, 255, 0.22);
+        transition: transform 0.24s ease, box-shadow 0.24s ease;
+    }
+
+    .stMetric:hover > div {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.52);
+    }
+
+    .stMetric .css-1nw1y2g {  /* metric value */
+        color: #e7f5ff;
+    }
+
+    button[kind='primary'], .stButton>button {
+        background: linear-gradient(120deg, #0078ff, #00f7ff);
+        color: #02162f;
+        font-weight: 700;
+        border: none;
+        box-shadow: 0 8px 20px rgba(0, 110, 255, 0.4);
+        transition: transform 0.2s ease,
+                    box-shadow 0.2s ease;
+    }
+
+    button[kind='primary']:hover, .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 26px rgba(0, 160, 255, 0.55);
+    }
+
+    .css-1q1n0ol {
+        color: #98c5ff !important;
+    }
+
+    .stTabs [role='tab'] {
+        border-radius: 12px;
+        background: rgba(30, 60, 100, 0.35);
+        border: 1px solid rgba(150, 190, 255, .18);
+        color: #d7e9ff;
+        margin-right: 6px;
+        transition: all 0.2s ease;
+    }
+
+    .stTabs [aria-selected='true'] {
+        background: linear-gradient(90deg, rgba(0, 188, 255, 0.7), rgba(0, 128, 255, 0.9));
+        box-shadow: 0 8px 16px rgba(0, 112, 255, 0.45);
+        color: #fff;
+        border: 1px solid rgba(0, 255, 255, 0.35);
+    }
+
+    @keyframes glow-title {
+        0% { text-shadow: 0 0 8px rgba(0,225,255,0.66), 0 0 18px rgba(0,130,255,0.4);}   
+        50% { text-shadow: 0 0 14px rgba(0,255,255,0.86), 0 0 24px rgba(0,92,222,0.58);} 
+        100% { text-shadow: 0 0 8px rgba(0,225,255,0.66), 0 0 18px rgba(0,130,255,0.4);}   
+    }
+
+    .css-1d391kg h1 {
+        animation: glow-title 2.5s ease-in-out infinite;
+    }
+
+    .stDataFrame .dataframe {
+        background-color: rgba(5,10,30,0.7) !important;
+        border-radius: 16px !important;
+        border: 1px solid rgba(64, 120, 255, 0.2);
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("🌍 TerraPulse AI")
 st.subheader("AI-powered Earth Intelligence Dashboard")
 st.write("Live environmental monitoring dashboard")
