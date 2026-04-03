@@ -156,6 +156,57 @@ with tab2:
             )
         
             st.line_chart(df[selected_col])
+            
+            # ML Predictions Section
+            st.subheader("🤖 AI Predictions & Anomaly Detection")
+            
+            # Trend prediction
+            if len(df[selected_col]) >= 3:
+                from sklearn.linear_model import LinearRegression
+                
+                # Prepare data
+                X = np.arange(len(df[selected_col])).reshape(-1, 1)
+                y = df[selected_col].values
+                
+                # Train simple linear regression
+                model = LinearRegression()
+                model.fit(X, y)
+                
+                # Predict next 5 points
+                future_X = np.arange(len(df[selected_col]), len(df[selected_col]) + 5).reshape(-1, 1)
+                predictions = model.predict(future_X)
+                
+                st.write(f"**Trend Prediction (Next 5 values):**")
+                pred_df = pd.DataFrame({
+                    "Step": range(1, 6),
+                    "Predicted Value": predictions.round(2)
+                })
+                st.dataframe(pred_df)
+                
+                # Anomaly Detection
+                st.write(f"**Anomaly Detection:**")
+                mean_val = y.mean()
+                std_val = y.std()
+                threshold = 2.5  # 2.5 standard deviations
+                
+                anomalies = np.abs(y - mean_val) > (threshold * std_val)
+                anomaly_count = anomalies.sum()
+                
+                col1, col2 = st.columns(2)
+                col1.metric("🔴 Anomalies Detected", anomaly_count)
+                col2.metric("📊 Anomaly %", f"{(anomaly_count/len(y)*100):.1f}%")
+                
+                if anomaly_count > 0:
+                    st.warning(f"⚠️ Found {anomaly_count} anomalous values (>2.5σ from mean)")
+                    anomaly_indices = np.where(anomalies)[0]
+                    anomaly_df = pd.DataFrame({
+                        "Index": anomaly_indices,
+                        "Value": y[anomalies],
+                        "Deviation": (y[anomalies] - mean_val).round(2)
+                    })
+                    st.dataframe(anomaly_df)
+                else:
+                    st.success("✓ No anomalies detected - data looks clean!")
         
         else:
             st.warning("No numeric column available for analysis.")
