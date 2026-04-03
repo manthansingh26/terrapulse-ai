@@ -5,6 +5,8 @@ from PIL import Image
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import IsolationForest
 import requests
+import folium
+from streamlit_folium import folium_static
 
 @st.cache_data
 def fetch_air_quality_data(city, days):
@@ -75,6 +77,92 @@ def fetch_air_quality_data(city, days):
         st.warning(f"API unavailable. Using simulated data. (Error: {str(e)})")
         return None
 
+def get_city_coordinates(city):
+    """Get coordinates for a city"""
+    coords = {
+        "Ahmedabad": (23.0225, 72.5714),
+        "Surat": (21.1702, 72.8311),
+        "Mumbai": (19.0760, 72.8777)
+    }
+    return coords.get(city, (22.0, 73.0))
+
+def calculate_aqi_status(aqi_value):
+    """Calculate AQI status and color based on EPA standards"""
+    if aqi_value < 50:
+        return {"level": "Good", "color": "green", "description": "Air quality is satisfactory"}
+    elif aqi_value < 100:
+        return {"level": "Moderate", "color": "yellow", "description": "Air quality is acceptable"}
+    elif aqi_value < 150:
+        return {"level": "Unhealthy for Sensitive Groups", "color": "orange", "description": "Sensitive groups may experience health effects"}
+    elif aqi_value < 200:
+        return {"level": "Unhealthy", "color": "red", "description": "Everyone may experience health effects"}
+    elif aqi_value < 300:
+        return {"level": "Very Unhealthy", "color": "purple", "description": "Health alert: serious health effects"}
+    else:
+        return {"level": "Hazardous", "color": "darkred", "description": "Health warnings of emergency conditions"}
+
+def create_city_popup(city_name, city_data):
+    """Create HTML popup content for city marker"""
+    aqi_status = calculate_aqi_status(city_data['AQI'])
+    
+    html = f"""
+    <div style='font-family: Arial; min-width: 250px;'>
+        <h3 style='margin: 0; color: #2c3e50;'>{city_name}</h3>
+        <hr style='margin: 10px 0;'>
+        <div style='background-color: {aqi_status["color"]}; padding: 8px; border-radius: 4px; color: white; font-weight: bold; text-align: center;'>
+            AQI: {city_data['AQI']:.1f} - {aqi_status["level"]}
+        </div>
+        <div style='margin-top: 10px;'>
+            <div style='margin: 5px 0;'><span style='font-weight: bold;'>🌡️ Temperature:</span> {city_data['Temperature']:.1f} °C</div>
+            <div style='margin: 5px 0;'><span style='font-weight: bold;'>💧 Humidity:</span> {city_data['Humidity']:.1f} %</div>
+            <div style='margin: 5px 0;'><span style='font-weight: bold;'>🏭 CO2:</span> {city_data['CO2']:.1f} ppm</div>
+            <div style='margin: 5px 0;'><span style='font-weight: bold;'>🌬️ Wind Speed:</span> {city_data['Wind Speed']:.1f} km/h</div>
+            <div style='margin: 5px 0;'><span style='font-weight: bold;'>🌧️ Rainfall:</span> {city_data['Rainfall']:.1f} mm</div>
+        </div>
+    </div>
+    """
+    return html
+
+def create_environmental_map(cities_data, center_location, zoom_level=6, show_heatmap=False):
+    """Create interactive folium map with city markers"""
+    # Create base map
+    env_map = folium.Map(
+        location=center_location,
+        zoom_start=zoom_level,
+        tiles="OpenStreetMap"
+    )
+    
+    # Add markers for each city
+    for city_name, city_data in cities_data.items():
+        coords = get_city_coordinates(city_name)
+        aqi_status = calculate_aqi_status(city_data['AQI'])
+        
+        # Create popup content
+        popup_html = create_city_popup(city_name, city_data)
+        
+        # Add marker with color based on AQI
+        folium.Marker(
+            location=coords,
+            popup=folium.Popup(popup_html, max_width=300),
+            tooltip=city_name,
+            icon=folium.Icon(color=aqi_status['color'], icon='info-sign')
+        ).add_to(env_map)
+    
+    # Add heatmap layer if requested
+    if show_heatmap:
+        from folium.plugins import HeatMap
+        heat_data = []
+        for city_name, city_data in cities_data.items():
+            coords = get_city_coordinates(city_name)
+            # Normalize AQI to 0-1 range for heatmap intensity
+            max_aqi = max(data['AQI'] for data in cities_data.values())
+            intensity = city_data['AQI'] / max_aqi if max_aqi > 0 else 0
+            heat_data.append([coords[0], coords[1], intensity])
+        
+        HeatMap(heat_data, radius=50, blur=35, max_zoom=13).add_to(env_map)
+    
+    return env_map
+
 st.set_page_config(page_title="TerraPulse AI", layout="wide")
 
 st.title("🌍 TerraPulse")
@@ -85,6 +173,7 @@ st.sidebar.title("Control Panel")
 location = st.sidebar.selectbox("Select Location", ["Ahmedabad", "Surat", "Mumbai"])
 days = st.sidebar.slider("Number of Days", 5, 30, 7)
 use_real_data = st.sidebar.checkbox("Use Real Air Quality Data", value=False)
+show_heatmap = st.sidebar.checkbox("Show Pollution Heatmap", value=False)
 
 if use_real_data:
     # Try to fetch real air quality data
@@ -132,7 +221,7 @@ col4.metric("🌬️ Avg Wind Speed", f"{sample_data['Wind Speed (km/h)'].mean()
 st.divider()
 
 # Main Dashboard Tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Dashboard", "📈 CSV Analysis", "🖼️ Image Analysis", "🌿 Environmental Datasets", "🤖 ML Models"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Dashboard", "🗺️ Interactive Map", "📈 CSV Analysis", "🖼️ Image Analysis", "🌿 Environmental Datasets", "🤖 ML Models"])
 
 # ============ TAB 1: DASHBOARD ============
 with tab1:
@@ -145,8 +234,62 @@ with tab1:
     # Chart
     st.line_chart(sample_data.set_index("Day")[["Temperature (°C)", "Humidity (%)", "AQI", "CO2 (ppm)", "Rainfall (mm)", "Wind Speed (km/h)"]])
 
-# ============ TAB 2: CSV ANALYSIS ============
+# ============ TAB 2: INTERACTIVE MAP ============
 with tab2:
+    st.subheader("Interactive Geospatial Map")
+    st.write("Explore environmental data across cities with interactive markers and optional heatmap overlay.")
+    
+    # Prepare data for all cities
+    all_cities = ["Ahmedabad", "Surat", "Mumbai"]
+    cities_data = {}
+    
+    for city in all_cities:
+        # Get average values for the city
+        if city == location:
+            # Use current sample_data for selected location
+            cities_data[city] = {
+                'AQI': sample_data['AQI'].mean(),
+                'CO2': sample_data['CO2 (ppm)'].mean(),
+                'Temperature': sample_data['Temperature (°C)'].mean(),
+                'Humidity': sample_data['Humidity (%)'].mean(),
+                'Wind Speed': sample_data['Wind Speed (km/h)'].mean(),
+                'Rainfall': sample_data['Rainfall (mm)'].mean()
+            }
+        else:
+            # Generate data for other cities
+            cities_data[city] = {
+                'AQI': np.random.uniform(50, 200),
+                'CO2': np.random.uniform(350, 450),
+                'Temperature': np.random.uniform(20, 40),
+                'Humidity': np.random.uniform(40, 90),
+                'Wind Speed': np.random.uniform(5, 25),
+                'Rainfall': np.random.uniform(0, 10)
+            }
+    
+    # Create map centered on India
+    center_coords = (22.0, 73.0)  # Central India
+    env_map = create_environmental_map(
+        cities_data=cities_data,
+        center_location=center_coords,
+        zoom_level=6,
+        show_heatmap=show_heatmap
+    )
+    
+    # Display map
+    folium_static(env_map, width=1200, height=600)
+    
+    # Display legend
+    st.write("**AQI Color Legend:**")
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    col1.markdown("🟢 **Good** (0-50)")
+    col2.markdown("🟡 **Moderate** (51-100)")
+    col3.markdown("🟠 **Unhealthy for Sensitive** (101-150)")
+    col4.markdown("🔴 **Unhealthy** (151-200)")
+    col5.markdown("🟣 **Very Unhealthy** (201-300)")
+    col6.markdown("🟤 **Hazardous** (301+)")
+
+# ============ TAB 3: CSV ANALYSIS ============
+with tab3:
     st.subheader("Upload & Analyze CSV Data")
     
     uploaded_csv = st.file_uploader("📂 Upload a CSV file", type=["csv"], key="csv_uploader")
@@ -230,8 +373,8 @@ with tab2:
         else:
             st.warning("No numeric column available for analysis.")
 
-# ============ TAB 3: IMAGE ANALYSIS ============
-with tab3:
+# ============ TAB 4: IMAGE ANALYSIS ============
+with tab4:
     st.subheader("Upload & Analyze Images")
 
     uploaded_image = st.file_uploader("📂 Upload an image", type=["png", "jpg", "jpeg"], key="image_uploader")
@@ -251,8 +394,8 @@ with tab3:
         else:
             st.write(f"Average grayscale value: {arr.mean():.1f}")
 
-# ============ TAB 4: ENVIRONMENTAL DATASETS ============
-with tab4:
+# ============ TAB 5: ENVIRONMENTAL DATASETS ============
+with tab5:
     st.subheader("Environmental Datasets Overview")
     
     st.write("Explore various environmental metrics and datasets for selected location and time period.")
@@ -326,8 +469,8 @@ with tab4:
         
         st.metric("Total Species Observed", bio_data["Species Count"].sum())
 
-# ============ TAB 5: ML MODELS ============
-with tab5:
+# ============ TAB 6: ML MODELS ============
+with tab6:
     st.subheader("Machine Learning Models for Environmental Prediction")
     
     st.write("Apply ML models to predict environmental trends and detect anomalies.")
