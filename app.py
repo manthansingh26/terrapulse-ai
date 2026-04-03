@@ -103,6 +103,38 @@ with tab2:
 
         numeric_cols = df.select_dtypes(include=np.number).columns
         
+        # Download Report Section
+        st.subheader("📥 Download Analysis Report")
+        
+        # Create analysis report
+        report_data = {
+            "Generated At": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "Total Rows": df.shape[0],
+            "Total Columns": df.shape[1],
+            "Data Quality %": f"{data_quality:.1f}%",
+            "Numeric Columns": len(df.select_dtypes(include=np.number).columns),
+            "Text Columns": len(df.select_dtypes(include='object').columns),
+            "Missing Values": missing_cells
+        }
+        
+        # Convert to CSV format
+        report_str = "ANALYSIS REPORT\n"
+        report_str += "=" * 40 + "\n\n"
+        for key, value in report_data.items():
+            report_str += f"{key}: {value}\n"
+        report_str += "\n" + "=" * 40 + "\n"
+        report_str += f"\nOriginal Data:\n{df.to_csv(index=False)}"
+        
+        # Download button
+        st.download_button(
+            label="⬇️ Download Analysis Report (CSV)",
+            data=report_str,
+            file_name=f"terrapulse_analysis_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.txt",
+            mime="text/plain"
+        )
+        
+        st.success("✓ Report ready to download!")
+        
         st.subheader("📈 Data Insights")
         
         if len(numeric_cols) >= 1:
