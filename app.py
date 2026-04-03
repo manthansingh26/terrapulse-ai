@@ -4,6 +4,43 @@ import numpy as np
 from PIL import Image
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import IsolationForest
+import requests
+
+@st.cache_data
+def fetch_air_quality_data(city, days):
+    """Fetch air quality data from OpenAQ API"""
+    try:
+        # OpenAQ API for measurements
+        url = f"https://api.openaq.org/v2/measurements?city={city}&limit={days*10}&parameter=pm25,co"
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        if 'results' in data and data['results']:
+            # Process the data
+            measurements = data['results']
+            df = pd.DataFrame(measurements)
+            df['date'] = pd.to_datetime(df['date'].apply(lambda x: x['utc']))
+            df = df.groupby(df['date'].dt.date).agg({
+                'value': 'mean',
+                'parameter': 'first'
+            }).reset_index()
+            
+            # Pivot to get pm25 and co columns
+            df_pivot = df.pivot(index='date', columns='parameter', values='value').reset_index()
+            df_pivot.columns.name = None
+            df_pivot = df_pivot.rename(columns={'pm25': 'AQI', 'co': 'CO2'})
+            
+            # Fill missing values
+            df_pivot['AQI'] = df_pivot['AQI'].fillna(df_pivot['AQI'].mean())
+            df_pivot['CO2'] = df_pivot['CO2'].fillna(df_pivot['CO2'].mean())
+            
+            return df_pivot.head(days)
+        else:
+            return None
+    except Exception as e:
+        st.warning(f"Failed to fetch real data for {city}: {str(e)}")
+        return None
 
 st.set_page_config(page_title="TerraPulse AI", layout="wide")
 
@@ -14,13 +51,34 @@ st.write("Live environmental monitoring dashboard")
 st.sidebar.title("Control Panel")
 location = st.sidebar.selectbox("Select Location", ["Ahmedabad", "Surat", "Mumbai"])
 days = st.sidebar.slider("Number of Days", 5, 30, 7)
+use_real_data = st.sidebar.checkbox("Use Real Air Quality Data", value=False)
+
+if use_real_data:
+    # Try to fetch real air quality data
+    real_aq_data = fetch_air_quality_data(location, days)
+    if real_aq_data is not None and not real_aq_data.empty:
+        # Use real AQI and CO2
+        aqi = real_aq_data['AQI'].values
+        co2 = real_aq_data['CO2'].values
+        # Ensure we have enough data
+        if len(aqi) < days:
+            # Pad with averages
+            avg_aqi = np.mean(aqi) if len(aqi) > 0 else 50
+            avg_co2 = np.mean(co2) if len(co2) > 0 else 400
+            aqi = np.pad(aqi, (0, days - len(aqi)), constant_values=avg_aqi)
+            co2 = np.pad(co2, (0, days - len(co2)), constant_values=avg_co2)
+    else:
+        # Fallback to random
+        aqi = np.random.randint(50, 200, days)
+        co2 = np.random.uniform(350, 450, days)
+else:
+    aqi = np.random.randint(50, 200, days)
+    co2 = np.random.uniform(350, 450, days)
 
 temperature = np.random.randint(20, 40, days)
 humidity = np.random.randint(40, 90, days)
-aqi = np.random.randint(50, 200, days)  # Air Quality Index
-co2 = np.random.uniform(350, 450, days)  # CO2 levels in ppm
-rainfall = np.random.uniform(0, 10, days)  # Rainfall in mm
-wind_speed = np.random.uniform(5, 25, days)  # Wind speed in km/h
+rainfall = np.random.uniform(0, 10, days)
+wind_speed = np.random.uniform(5, 25, days)
 
 sample_data = pd.DataFrame({
     "Day": list(range(1, days + 1)),
