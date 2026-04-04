@@ -108,7 +108,7 @@ def calculate_aqi_status(aqi_value):
     if aqi_value < 50:
         return {"level": "Good", "color": "green", "description": "Air quality is satisfactory"}
     elif aqi_value < 100:
-        return {"level": "Moderate", "color": "yellow", "description": "Air quality is acceptable"}
+        return {"level": "Moderate", "color": "orange", "description": "Air quality is acceptable"}
     elif aqi_value < 150:
         return {"level": "Unhealthy for Sensitive Groups", "color": "orange", "description": "Sensitive groups may experience health effects"}
     elif aqi_value < 200:
@@ -262,7 +262,12 @@ with tab2:
     st.write("Explore environmental data across cities with interactive markers and optional heatmap overlay.")
     
     # Prepare data for all cities
-    all_cities = ["Ahmedabad", "Surat", "Mumbai"]
+    all_cities = [
+        "Ahmedabad", "Surat", "Mumbai", "Delhi", "Bangalore", 
+        "Chennai", "Kolkata", "Hyderabad", "Pune", "Jaipur",
+        "Lucknow", "Kanpur", "Nagpur", "Indore", "Thane",
+        "Bhopal", "Visakhapatnam", "Patna", "Vadodara", "Ghaziabad"
+    ]
     cities_data = {}
     
     for city in all_cities:
@@ -289,11 +294,11 @@ with tab2:
             }
     
     # Create map centered on India
-    center_coords = (22.0, 73.0)  # Central India
+    center_coords = (22.0, 78.0)  # Central India
     env_map = create_environmental_map(
         cities_data=cities_data,
         center_location=center_coords,
-        zoom_level=6,
+        zoom_level=5,
         show_heatmap=show_heatmap
     )
     
@@ -309,6 +314,9 @@ with tab2:
     col4.markdown("🔴 **Unhealthy** (151-200)")
     col5.markdown("🟣 **Very Unhealthy** (201-300)")
     col6.markdown("🟤 **Hazardous** (301+)")
+    
+    # Display city count
+    st.info(f"📍 Displaying {len(all_cities)} cities across India")
 
 # ============ TAB 3: CSV ANALYSIS ============
 with tab3:
