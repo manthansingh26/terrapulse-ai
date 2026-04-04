@@ -4,67 +4,9 @@ import numpy as np
 from PIL import Image
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import IsolationForest
-from sklearn.cluster import KMeans
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from sklearn.preprocessing import MinMaxScaler
 import requests
 import folium
 from streamlit_folium import folium_static
-import plotly.graph_objects as go
-import plotly.express as px
-from datetime import datetime, timedelta
-import time
-
-# Initialize session state for alerts and updates
-if 'last_update' not in st.session_state:
-    st.session_state.last_update = datetime.now()
-if 'alert_history' not in st.session_state:
-    st.session_state.alert_history = []
-if 'previous_aqi' not in st.session_state:
-    st.session_state.previous_aqi = None
-if 'auto_refresh' not in st.session_state:
-    st.session_state.auto_refresh = False
-if 'refresh_interval' not in st.session_state:
-    st.session_state.refresh_interval = 300  # 5 minutes in seconds
-
-def check_pollution_spike(current_aqi, previous_aqi, threshold=50):
-    """Check if there's a significant pollution spike"""
-    if previous_aqi is None:
-        return False, 0
-    
-    spike = current_aqi - previous_aqi
-    if spike > threshold:
-        return True, spike
-    return False, spike
-
-def create_alert(alert_type, message, severity="warning"):
-    """Create an alert and add to history"""
-    alert = {
-        'timestamp': datetime.now(),
-        'type': alert_type,
-        'message': message,
-        'severity': severity
-    }
-    st.session_state.alert_history.append(alert)
-    # Keep only last 10 alerts
-    if len(st.session_state.alert_history) > 10:
-        st.session_state.alert_history = st.session_state.alert_history[-10:]
-    return alert
-
-def get_aqi_health_alert(aqi_value):
-    """Get health alert message based on AQI"""
-    if aqi_value < 50:
-        return None
-    elif aqi_value < 100:
-        return "Moderate air quality. Unusually sensitive people should consider reducing prolonged outdoor exertion."
-    elif aqi_value < 150:
-        return "⚠️ Unhealthy for sensitive groups. People with respiratory conditions should limit outdoor activities."
-    elif aqi_value < 200:
-        return "🚨 Unhealthy air quality! Everyone should reduce prolonged outdoor exertion."
-    elif aqi_value < 300:
-        return "🚨 Very Unhealthy! Health alert - everyone may experience serious health effects."
-    else:
-        return "🆘 HAZARDOUS! Emergency conditions - everyone should avoid all outdoor activities!"
 
 @st.cache_data
 def fetch_air_quality_data(city, days):
@@ -240,59 +182,11 @@ def create_environmental_map(cities_data, center_location, zoom_level=6, show_he
 
 st.set_page_config(page_title="TerraPulse AI", layout="wide")
 
-# Real-Time Monitoring Header
-col1, col2, col3 = st.columns([3, 1, 1])
-with col1:
-    st.title("🌍 TerraPulse")
-with col2:
-    # Last update time
-    time_since_update = (datetime.now() - st.session_state.last_update).seconds
-    st.metric("Last Update", f"{time_since_update}s ago")
-with col3:
-    # Auto-refresh toggle
-    if st.button("🔄 Refresh Now"):
-        st.session_state.last_update = datetime.now()
-        st.rerun()
+st.title("🌍 TerraPulse")
 st.subheader("Earth Intelligence Dashboard")
 st.write("Live environmental monitoring dashboard")
 
 st.sidebar.title("Control Panel")
-
-# Real-Time Monitoring Section
-st.sidebar.subheader("⚡ Real-Time Monitoring")
-auto_refresh = st.sidebar.checkbox("Enable Auto-Refresh", value=st.session_state.auto_refresh)
-st.session_state.auto_refresh = auto_refresh
-
-if auto_refresh:
-    refresh_interval = st.sidebar.select_slider(
-        "Refresh Interval",
-        options=[60, 120, 300, 600],
-        value=st.session_state.refresh_interval,
-        format_func=lambda x: f"{x//60} min" if x >= 60 else f"{x}s"
-    )
-    st.session_state.refresh_interval = refresh_interval
-    
-    # Auto-refresh logic
-    time_since_update = (datetime.now() - st.session_state.last_update).seconds
-    if time_since_update >= refresh_interval:
-        st.session_state.last_update = datetime.now()
-        st.rerun()
-    
-    # Show countdown
-    remaining = refresh_interval - time_since_update
-    st.sidebar.info(f"⏱️ Next refresh in: {remaining}s")
-    time.sleep(1)
-    st.rerun()
-
-# Alert Settings
-st.sidebar.subheader("🔔 Alert Settings")
-enable_alerts = st.sidebar.checkbox("Enable Pollution Alerts", value=True)
-alert_threshold = st.sidebar.slider("AQI Alert Threshold", 100, 300, 150)
-
-st.sidebar.divider()
-
-# Location and Data Settings
-st.sidebar.subheader("📍 Location & Data")
 location = st.sidebar.selectbox("Select Location", [
     "Ahmedabad", "Surat", "Mumbai", "Delhi", "Bangalore", 
     "Chennai", "Kolkata", "Hyderabad", "Pune", "Jaipur",
@@ -345,62 +239,6 @@ col1.metric("📍 Location", location)
 col2.metric("🌡 Avg Temperature", f"{sample_data['Temperature (°C)'].mean():.1f} °C")
 col3.metric("💧 Avg Humidity", f"{sample_data['Humidity (%)'].mean():.1f} %")
 col4.metric("🌬️ Avg Wind Speed", f"{sample_data['Wind Speed (km/h)'].mean():.1f} km/h")
-
-# Real-Time Alert System
-current_aqi = sample_data['AQI'].mean()
-
-# Check for pollution spike
-if enable_alerts and st.session_state.previous_aqi is not None:
-    is_spike, spike_amount = check_pollution_spike(current_aqi, st.session_state.previous_aqi, threshold=50)
-    if is_spike:
-        alert_msg = f"🚨 Pollution Spike Alert! AQI increased by {spike_amount:.1f} points in {location}"
-        create_alert("pollution_spike", alert_msg, "error")
-        st.error(alert_msg)
-
-# Check AQI threshold
-if enable_alerts and current_aqi > alert_threshold:
-    health_alert = get_aqi_health_alert(current_aqi)
-    if health_alert:
-        create_alert("high_aqi", health_alert, "warning")
-        st.warning(f"⚠️ {location}: {health_alert}")
-
-# Update previous AQI
-st.session_state.previous_aqi = current_aqi
-
-# Display Alert History
-if len(st.session_state.alert_history) > 0:
-    with st.expander(f"📋 Alert History ({len(st.session_state.alert_history)} alerts)", expanded=False):
-        for alert in reversed(st.session_state.alert_history[-5:]):  # Show last 5
-            time_str = alert['timestamp'].strftime("%H:%M:%S")
-            if alert['severity'] == 'error':
-                st.error(f"[{time_str}] {alert['message']}")
-            elif alert['severity'] == 'warning':
-                st.warning(f"[{time_str}] {alert['message']}")
-            else:
-                st.info(f"[{time_str}] {alert['message']}")
-
-# Live Status Indicator
-status_col1, status_col2, status_col3 = st.columns([1, 1, 2])
-with status_col1:
-    if current_aqi < 100:
-        st.success("🟢 Air Quality: Good")
-    elif current_aqi < 150:
-        st.warning("🟡 Air Quality: Moderate")
-    else:
-        st.error("🔴 Air Quality: Unhealthy")
-
-with status_col2:
-    if auto_refresh:
-        st.info("🔄 Live Monitoring Active")
-    else:
-        st.info("⏸️ Manual Mode")
-
-with status_col3:
-    # Data freshness indicator
-    if use_real_data:
-        st.success("📡 Using Real-Time Data")
-    else:
-        st.info("📊 Using Simulated Data")
 
 st.divider()
 
