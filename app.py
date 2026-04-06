@@ -108,7 +108,7 @@ def calculate_aqi_status(aqi_value):
     if aqi_value < 50:
         return {"level": "Good", "color": "green", "description": "Air quality is satisfactory"}
     elif aqi_value < 100:
-        return {"level": "Moderate", "color": "orange", "description": "Air quality is acceptable"}
+        return {"level": "Moderate", "color": "yellow", "description": "Air quality is acceptable"}
     elif aqi_value < 150:
         return {"level": "Unhealthy for Sensitive Groups", "color": "orange", "description": "Sensitive groups may experience health effects"}
     elif aqi_value < 200:
@@ -186,7 +186,20 @@ st.title("🌍 TerraPulse")
 st.subheader("Earth Intelligence Dashboard")
 st.write("Live environmental monitoring dashboard")
 
-st.sidebar.title("Control Panel")
+# ============ SIDEBAR NAVIGATION ============
+st.sidebar.title("📍 Navigation Menu")
+
+# Navigation options
+nav_page = st.sidebar.radio(
+    "Select Section:",
+    ["Dashboard", "Interactive Map", "CSV Analysis", "Image Analysis", "Environmental Datasets", "ML Models"],
+    key="navigation"
+)
+
+st.sidebar.divider()
+
+# ============ SIDEBAR CONTROLS ============
+st.sidebar.title("⚙️ Control Panel")
 location = st.sidebar.selectbox("Select Location", [
     "Ahmedabad", "Surat", "Mumbai", "Delhi", "Bangalore", 
     "Chennai", "Kolkata", "Hyderabad", "Pune", "Jaipur",
@@ -242,11 +255,12 @@ col4.metric("🌬️ Avg Wind Speed", f"{sample_data['Wind Speed (km/h)'].mean()
 
 st.divider()
 
-# Main Dashboard Tabs
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Dashboard", "🗺️ Interactive Map", "📈 CSV Analysis", "🖼️ Image Analysis", "🌿 Environmental Datasets", "🤖 ML Models"])
+# ============ MAIN CONTENT AREA ============
+# Dashboard content based on sidebar navigation
 
-# ============ TAB 1: DASHBOARD ============
-with tab1:
+if nav_page == "Dashboard":
+    st.header("📊 Dashboard")
+
     st.subheader("Environmental Metrics")
     
     # Display data table
@@ -256,18 +270,12 @@ with tab1:
     # Chart
     st.line_chart(sample_data.set_index("Day")[["Temperature (°C)", "Humidity (%)", "AQI", "CO2 (ppm)", "Rainfall (mm)", "Wind Speed (km/h)"]])
 
-# ============ TAB 2: INTERACTIVE MAP ============
-with tab2:
-    st.subheader("Interactive Geospatial Map")
+elif nav_page == "Interactive Map":
+    st.header("🗺️ Interactive Map")
     st.write("Explore environmental data across cities with interactive markers and optional heatmap overlay.")
     
     # Prepare data for all cities
-    all_cities = [
-        "Ahmedabad", "Surat", "Mumbai", "Delhi", "Bangalore", 
-        "Chennai", "Kolkata", "Hyderabad", "Pune", "Jaipur",
-        "Lucknow", "Kanpur", "Nagpur", "Indore", "Thane",
-        "Bhopal", "Visakhapatnam", "Patna", "Vadodara", "Ghaziabad"
-    ]
+    all_cities = ["Ahmedabad", "Surat", "Mumbai"]
     cities_data = {}
     
     for city in all_cities:
@@ -294,11 +302,11 @@ with tab2:
             }
     
     # Create map centered on India
-    center_coords = (22.0, 78.0)  # Central India
+    center_coords = (22.0, 73.0)  # Central India
     env_map = create_environmental_map(
         cities_data=cities_data,
         center_location=center_coords,
-        zoom_level=5,
+        zoom_level=6,
         show_heatmap=show_heatmap
     )
     
@@ -314,9 +322,6 @@ with tab2:
     col4.markdown("🔴 **Unhealthy** (151-200)")
     col5.markdown("🟣 **Very Unhealthy** (201-300)")
     col6.markdown("🟤 **Hazardous** (301+)")
-    
-    # Display city count
-    st.info(f"📍 Displaying {len(all_cities)} cities across India")
 
 # ============ TAB 3: CSV ANALYSIS ============
 with tab3:
