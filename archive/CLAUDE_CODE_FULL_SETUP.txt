@@ -1,0 +1,538 @@
+🤖 CLAUDE CODE FULL SETUP PROMPT
+=====================================
+Copy & Paste EVERYTHING below into Claude Code Terminal
+
+---
+
+You are TerraPulse-AI automated setup assistant. Your mission is to complete FULL project setup from scratch. 
+The user has confirmed all prerequisites are installed:
+- Python 3.11+ with PATH configured
+- Node.js v20+ with npm
+- PostgreSQL 15 (password: 2601)
+
+Follow EVERY step sequentially. Do NOT skip or parallelize. Each step depends on previous completion.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📋 STEP 1: VERIFY ALL PREREQUISITES
+─────────────────────────────────────
+
+Command 1: python --version
+Expected: Python 3.11+
+Action if fails: STOP and inform user to reinstall Python with PATH configured
+
+Command 2: node --version
+Expected: v20.x or higher
+Action if fails: STOP and inform user to reinstall Node.js
+
+Command 3: npm --version
+Expected: Version number should display
+Action if fails: STOP, Node.js not properly installed
+
+Command 4: psql --version
+Expected: PostgreSQL 15.x
+Action if fails: STOP and inform user to reinstall PostgreSQL
+
+✅ After all 4 commands succeed, continue to STEP 2
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📂 STEP 2: CREATE PROJECT DIRECTORY STRUCTURE
+──────────────────────────────────────────────
+
+Command 1: cd d:\Projects\terrapulse-ai
+Command 2: dir
+Expected: Should show backend/, frontend/ folders if they exist
+Command 3: If backend or frontend folders don't exist, create them:
+  - If no backend folder: mkdir backend
+  - If no frontend folder: mkdir frontend
+
+Command 4: cd backend
+Command 5: dir
+Expected: Should show app/, __init__.py, requirements.txt, Dockerfile, etc.
+
+If backend/app doesn't exist, inform user to restore from backup or provide files.
+
+Command 6: cd ..\frontend
+Command 7: dir
+Expected: Should show src/, public/, package.json, vite.config.ts, etc.
+
+If frontend/src doesn't exist, inform user to restore from backup or provide files.
+
+✅ After directory verification complete, continue to STEP 3
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🐍 STEP 3: SET UP PYTHON BACKEND ENVIRONMENT
+──────────────────────────────────────────────
+
+Command 1: cd d:\Projects\terrapulse-ai\backend
+Command 2: python -m venv venv
+Wait for completion (should create venv/ folder)
+
+Command 3: venv\Scripts\activate
+Expected: Command prompt shows (venv) prefix like "(venv) D:\Projects\terrapulse-ai\backend>"
+
+If activation fails:
+  - Delete backend/venv folder completely
+  - Try: venv\Scripts\activate.bat
+  - If still fails, try: python -m venv venv --upgrade-deps
+
+✅ Continue only after (venv) prefix appears
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📦 STEP 4: UPGRADE PIP AND INSTALL BACKEND DEPENDENCIES
+─────────────────────────────────────────────────────────
+
+IMPORTANT: Make sure (venv) is active in command prompt
+
+Command 1: python -m pip install --upgrade pip
+Wait for "Successfully installed pip" message
+
+Command 2: pip install -r requirements.txt
+Wait 2-3 minutes for completion
+Expected: Final message shows "Successfully installed [package list]"
+
+If any package fails:
+  - Run: pip install -r requirements.txt --no-cache-dir
+  - If still fails, run individually: pip install fastapi sqlalchemy psycopg2 pydantic
+
+✅ After all packages installed, continue to STEP 5
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✔️ STEP 5: VERIFY BACKEND PACKAGES INSTALLED
+──────────────────────────────────────────────
+
+Run these verification commands (with venv active):
+
+Command 1: pip list | findstr fastapi
+Expected: Shows "fastapi" with version number
+
+Command 2: pip list | findstr sqlalchemy
+Expected: Shows "sqlalchemy" with version number
+
+Command 3: pip list | findstr psycopg2
+Expected: Shows "psycopg2-binary" or "psycopg2" with version number
+
+Command 4: pip list | findstr pydantic
+Expected: Shows "pydantic" with version number
+
+If any command returns nothing (package missing):
+  Run: pip install -r requirements.txt again and wait for completion
+
+✅ After all 4 verifications pass, continue to STEP 6
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔐 STEP 6: CREATE POSTGRESQL DATABASE
+──────────────────────────────────────
+
+IMPORTANT: PostgreSQL service must be running in Windows Services
+
+Command 1: psql -U postgres -h localhost
+When prompted for password: 2601
+
+Expected: You should see "postgres=# " prompt (PostgreSQL interactive terminal)
+
+If connection fails:
+  - Check PostgreSQL service is running: services.msc
+  - Verify password is exactly "2601"
+  - Check port 5432 not blocked
+  - Try: psql -U postgres (without -h localhost)
+
+Once connected, run these PostgreSQL commands:
+
+PostgreSQL Command 1: CREATE DATABASE terrapulse_db;
+Expected: Response "CREATE DATABASE"
+
+PostgreSQL Command 2: \l
+Expected: Should list all databases including "terrapulse_db"
+
+PostgreSQL Command 3: \q
+Expected: Returns to normal command prompt
+
+✅ After database created and confirmed, continue to STEP 7
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔗 STEP 7: CREATE .ENV FILE IN PROJECT ROOT
+──────────────────────────────────────────────
+
+Command 1: cd d:\Projects\terrapulse-ai
+Command 2: Check if .env exists: type .env
+  
+If .env exists and shows DATABASE_URL, skip to STEP 8.
+
+If .env doesn't exist or is empty, create it with EXACTLY this content:
+
+─── START: Create new file named ".env" ───
+
+# Database Configuration
+DATABASE_URL=postgresql://postgres:2601@localhost:5432/terrapulse_db
+DB_USER=postgres
+DB_PASSWORD=2601
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=terrapulse_db
+
+# JWT Configuration
+JWT_SECRET_KEY=your-secret-key-change-this-in-production-2601
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Email Configuration (Optional - Gmail)
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SENDER_EMAIL=your-email@gmail.com
+SENDER_PASSWORD=your-app-password
+
+# API Keys
+WAQI_API_KEY=demo
+OPENWEATHER_API_KEY=your-key-here
+
+# Frontend Configuration
+VITE_API_URL=http://localhost:8000/api
+
+# Debug Mode
+DEBUG=True
+ENVIRONMENT=development
+
+─── END: .env file ───
+
+Command 3: Verify file created:
+  - dir | findstr .env
+  - Should show ".env" in file listing
+
+Command 4: Verify DATABASE_URL is correct:
+  - type .env | findstr DATABASE_URL
+  - Should show: DATABASE_URL=postgresql://postgres:2601@localhost:5432/terrapulse_db
+
+✅ After .env file confirmed, continue to STEP 8
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🗄️ STEP 8: VERIFY DATABASE CONNECTION FROM PYTHON
+────────────────────────────────────────────────────
+
+Command 1: cd d:\Projects\terrapulse-ai\backend
+Command 2: venv\Scripts\activate
+Command 3: python -c "from app.db.database import engine; print('Testing connection...'); conn = engine.connect(); print('✅ Database connection successful!'); conn.close()"
+
+Expected: Shows "✅ Database connection successful!"
+
+If connection fails with error like "could not translate host name":
+  - .env DATABASE_URL is wrong
+  - PostgreSQL not running
+  - Port 5432 blocked
+
+If error "relation does not exist":
+  - Continue to STEP 9 (database tables will be created)
+
+✅ After connection test passes, continue to STEP 9
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📊 STEP 9: INITIALIZE DATABASE SCHEMA AND TABLES
+──────────────────────────────────────────────────
+
+Command 1: cd d:\Projects\terrapulse-ai\backend
+Command 2: venv\Scripts\activate (if not already active)
+Command 3: python -c "from app.db.database import Base, engine; Base.metadata.create_all(bind=engine); print('✅ All database tables created successfully!')"
+
+Expected: Shows "✅ All database tables created successfully!"
+
+If error "ModuleNotFoundError":
+  - Check backend packages installed correctly in STEP 5
+  - Try: pip install -r requirements.txt again
+
+If error about "models":
+  - Verify backend/app/models/models.py exists
+  - Check file is not empty
+
+✅ After tables created, continue to STEP 10
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📝 STEP 10: LOAD SAMPLE DATA (OPTIONAL)
+─────────────────────────────────────────
+
+Command 1: cd d:\Projects\terrapulse-ai\backend
+Command 2: venv\Scripts\activate (if not already active)
+Command 3: python reset_db.py
+
+Expected: Shows messages about inserting data
+
+If file doesn't exist:
+  - Sample data is optional, continue to STEP 11
+  - Database will work fine without it
+
+If error occurs:
+  - It's safe to skip this step, database is ready
+
+✅ After sample data loaded (or skipped), continue to STEP 11
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🎁 STEP 11: SET UP FRONTEND - INSTALL NODE PACKAGES
+─────────────────────────────────────────────────────
+
+Command 1: cd d:\Projects\terrapulse-ai\frontend
+Command 2: npm install
+Wait 3-5 minutes for completion
+
+Expected: Shows "added XXX packages" and possibly "X vulnerabilities"
+Note: Minor vulnerabilities are normal and safe
+
+If npm install fails:
+  - Run: npm cache clean --force
+  - Run: npm install again
+  - If persists, try: npm install --legacy-peer-deps
+
+Command 3: Verify frontend packages:
+  - npm list react (should show version)
+  - npm list react-router-dom (should show version)
+  - npm list axios (should show version)
+
+If any package missing, run npm install again.
+
+✅ After frontend packages installed, continue to STEP 12
+
+═══════════════════════════════════════════════════════════════════════════════
+
+⚙️ STEP 12: CREATE FRONTEND VITE CONFIG (IF NOT EXISTS)
+─────────────────────────────────────────────────────────
+
+Command 1: cd d:\Projects\terrapulse-ai\frontend
+Command 2: Check if vite.config.ts exists: type vite.config.ts
+
+If file exists and contains "http://localhost:8000", skip to STEP 13.
+
+If file doesn't exist or proxy is wrong, create it with:
+
+─── START: Create vite.config.ts ───
+
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '/api')
+      }
+    }
+  }
+})
+
+─── END: vite.config.ts ───
+
+Command 3: Verify file:
+  - type vite.config.ts | findstr "localhost:8000"
+  - Should show the proxy configuration
+
+✅ After vite.config.ts verified, continue to STEP 13
+
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ STEP 13: FINAL CHECKLIST BEFORE RUNNING
+─────────────────────────────────────────────
+
+Verify all items:
+
+1. Backend:
+   - cd d:\Projects\terrapulse-ai\backend
+   - dir venv (should exist)
+   - type .env | findstr DATABASE_URL (should show URL)
+
+2. Frontend:
+   - cd d:\Projects\terrapulse-ai\frontend
+   - dir node_modules (should exist - large folder)
+   - npm list react (should show version)
+
+3. Database:
+   - psql -U postgres -h localhost (with password 2601)
+   - \l (should list terrapulse_db)
+   - \q (exit)
+
+4. Environment:
+   - cd d:\Projects\terrapulse-ai
+   - type .env (should show DATABASE_URL)
+
+If all 4 items verified:
+  ✅ SYSTEM IS READY TO RUN!
+
+If any item fails:
+  - Go back to relevant STEP and fix the issue
+  - Don't proceed until all items verified
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🚀 STEP 14: START BACKEND SERVER
+──────────────────────────────────
+
+IMPORTANT: Use a NEW terminal/command prompt window
+
+Command 1: cd d:\Projects\terrapulse-ai\backend
+Command 2: venv\Scripts\activate
+Command 3: python -m uvicorn app.main:app --reload
+
+Expected output shows:
+  "Uvicorn running on http://127.0.0.1:8000"
+  "Application startup complete"
+
+Once you see this, backend is running successfully.
+
+✅ KEEP THIS TERMINAL WINDOW OPEN
+
+You can test backend at:
+  - http://localhost:8000/api/health (Health check)
+  - http://localhost:8000/api/docs (Swagger documentation)
+  - http://localhost:8000/api/redoc (ReDoc documentation)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+💻 STEP 15: START FRONTEND SERVER
+──────────────────────────────────
+
+IMPORTANT: Use ANOTHER NEW terminal/command prompt window
+
+Command 1: cd d:\Projects\terrapulse-ai\frontend
+Command 2: npm run dev
+
+Expected output shows:
+  "VITE v5.x.x  ready in XXX ms"
+  "Local: http://localhost:3000"
+  Or: "Local: http://localhost:5173"
+
+Once you see this, frontend is running successfully.
+
+✅ KEEP THIS TERMINAL WINDOW OPEN
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🌐 STEP 16: OPEN APPLICATION IN BROWSER
+─────────────────────────────────────────
+
+Open your web browser and go to:
+
+PRIMARY: http://localhost:3000
+
+You should see the TerraPulse-AI login page!
+
+Also available:
+  - Backend Swagger Docs: http://localhost:8000/api/docs
+  - Backend Health Check: http://localhost:8000/api/health
+  - Frontend: http://localhost:3000
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔑 STEP 17: TEST LOGIN
+───────────────────────
+
+If you see login page, try these credentials:
+
+Option 1 - Admin Account:
+  Username: admin
+  Password: admin
+
+Option 2 - Demo User:
+  Email: user@example.com
+  Password: password
+
+Option 3 - Register New Account:
+  Click "Don't have an account? Register"
+  Create new account with any email/password
+
+If login works:
+  ✅ CONGRATULATIONS! FULL SETUP SUCCESSFUL!
+
+If login fails:
+  - Check backend terminal for error messages
+  - Verify .env DATABASE_URL is correct
+  - Ensure PostgreSQL service is running
+  - Try: Hard refresh browser (Ctrl+Shift+R)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🧪 STEP 18: VERIFY ALL ENDPOINTS ARE WORKING
+──────────────────────────────────────────────
+
+After logging in, test these features:
+
+1. Dashboard:
+   - Should show statistics cards
+   - Should display city data
+   - Charts should load
+
+2. Map:
+   - Should show interactive map
+   - Should show colored city markers
+   - Should be able to click markers
+
+3. Analytics:
+   - Should show charts
+   - Should display city statistics
+
+4. Profile:
+   - Should show your user information
+   - Should display email and username
+
+If all features work:
+  ✅ SYSTEM FULLY OPERATIONAL!
+
+If any feature fails:
+  - Check browser console (F12) for errors
+  - Check backend terminal for error messages
+  - Verify API is responding at: http://localhost:8000/api/health
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📚 STEP 19: USEFUL COMMANDS REFERENCE
+──────────────────────────────────────
+
+Backend Development:
+  - cd d:\Projects\terrapulse-ai\backend
+  - venv\Scripts\activate
+  - python -m uvicorn app.main:app --reload
+
+Frontend Development:
+  - cd d:\Projects\terrapulse-ai\frontend
+  - npm run dev
+
+Database Management:
+  - psql -U postgres -h localhost
+  - (password: 2601)
+
+Stop Servers:
+  - Backend: Ctrl+C in backend terminal
+  - Frontend: Ctrl+C in frontend terminal
+
+Restart Everything:
+  1. Stop both servers (Ctrl+C)
+  2. Start backend in new terminal
+  3. Start frontend in new terminal
+  4. Refresh browser
+
+Clear Cache:
+  - npm cache clean --force
+  - Delete frontend/node_modules and run npm install again
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🎉 SETUP COMPLETE!
+───────────────────
+
+Your TerraPulse-AI application is now running!
+
+Access it at: http://localhost:3000
+
+Databases connected, all services operational.
+Happy developing! 🚀
+
+═══════════════════════════════════════════════════════════════════════════════

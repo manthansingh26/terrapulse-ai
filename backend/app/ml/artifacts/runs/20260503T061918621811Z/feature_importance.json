@@ -1,0 +1,42 @@
+[
+  {
+    "feature": "current_aqi",
+    "importance": 1.25874
+  },
+  {
+    "feature": "co2",
+    "importance": 0.07041
+  },
+  {
+    "feature": "day_of_week",
+    "importance": 0.05596
+  },
+  {
+    "feature": "city_code",
+    "importance": 0.01401
+  },
+  {
+    "feature": "wind_speed",
+    "importance": 0.01312
+  },
+  {
+    "feature": "temperature",
+    "importance": 0.00608
+  },
+  {
+    "feature": "hour",
+    "importance": 0.00334
+  },
+  {
+    "feature": "humidity",
+    "importance": 0.00175
+  },
+  {
+    "feature": "rainfall",
+    "importance": 0.00017
+  },
+  {
+    "feature": "month",
+    "importance": 0.0
+  }
+]

@@ -1,0 +1,189 @@
+===========================================================
+TERRAPULSE AI - COMPLETE SETUP GUIDE
+April 19, 2026
+===========================================================
+
+YOUR SYSTEM STATUS:
+✓ Backend: READY
+✓ Frontend: READY  
+✓ Database: READY
+✓ Email System: NEEDS GMAIL CONFIG
+
+WHAT TO DO RIGHT NOW:
+===========================================================
+
+TASK 1: CONFIGURE GMAIL (5 minutes)
+===================================
+
+1. Go to: https://myaccount.google.com/apppasswords
+   - Select: Mail + Windows Computer
+   - Google generates 16-digit password
+   - COPY IT
+
+2. Edit: d:\Projects\terrapulse-ai\backend\.env
+
+Find these lines:
+  SMTP_USER=your-email@gmail.com
+  SMTP_PASSWORD=your-app-password
+  ALERT_EMAIL=admin@terrapulse.com
+
+Replace with YOUR VALUES:
+  SMTP_USER=YOUR_GMAIL@gmail.com
+  SMTP_PASSWORD=YOUR_16_DIGIT_PASSWORD
+  ALERT_EMAIL=YOUR_GMAIL@gmail.com
+
+Example:
+  SMTP_USER=john@gmail.com
+  SMTP_PASSWORD=abcd efgh ijkl mnop
+  ALERT_EMAIL=john@gmail.com
+
+Save the file.
+
+TASK 2: START BACKEND (2 minutes)
+=================================
+
+Stop any running backend (Ctrl+C)
+
+Open PowerShell and run:
+  cd d:\Projects\terrapulse-ai\backend
+  uvicorn app.main:app --reload
+
+Wait for:
+  "Uvicorn running on http://127.0.0.1:8000"
+  "Database tables created successfully"
+  "FastAPI Backend initialized successfully"
+
+TASK 3: START FRONTEND (1 minute)
+=================================
+
+Open NEW PowerShell and run:
+  cd d:\Projects\terrapulse-ai\frontend
+  npm run dev
+
+Wait for:
+  "Local: http://localhost:3000"
+
+TASK 4: TEST EMAIL ALERTS (2 minutes)
+=====================================
+
+Open THIRD PowerShell and paste:
+
+$testBody = '{"city": "Ahmedabad", "aqi_value": 250}'
+Invoke-RestMethod -Uri "http://localhost:8000/api/alerts/test" -Method Post -ContentType "application/json" -Body $testBody | ConvertTo-Json
+
+Expected output:
+{
+  "alert_triggered": true,
+  "email_sent": true,
+  "city": "Ahmedabad",
+  "aqi_value": 250,
+  "threshold": 200,
+  "message": "Test alert processed. Email SENT to..."
+}
+
+If "email_sent" is TRUE → CHECK YOUR GMAIL! 
+
+You should get email:
+  Subject: "High AQI Alert - Ahmedabad (AQI: 250)"
+  From: your configured email
+  Time: Within 30 seconds
+
+TASK 5: VERIFY DASHBOARD (1 minute)
+===================================
+
+1. Go to: http://localhost:3000
+2. Login with demo credentials:
+   - Email: admin@terrapulse.com
+   - Password: admin123
+3. You should see Dashboard with:
+   - Real-time city statistics
+   - Charts and maps
+   - RED ALERT BANNER if any city AQI > 200
+
+TASK 6: VERIFY MAP WORKS (1 minute)
+===================================
+
+1. Click "Map" in sidebar
+2. You should see:
+   - Interactive Leaflet map
+   - Color-coded circles for each city
+   - Green (good), Yellow (fair), Red (unhealthy)
+   - Click on circles to see city details
+
+===========================================================
+VERIFICATION CHECKLIST
+===========================================================
+
+[  ] Gmail credentials configured in .env
+[  ] Backend running on http://localhost:8000
+[  ] Frontend running on http://localhost:3000
+[  ] Test alert shows "email_sent": true
+[  ] Email received in Gmail inbox
+[  ] Can login to dashboard
+[  ] Dashboard shows city data
+[  ] Map displays with markers
+[  ] Red alert banner appears when AQI > 200
+
+===========================================================
+TROUBLESHOOTING
+===========================================================
+
+Problem: Backend won't start
+Solution: Check database is running
+  - Open Services app
+  - Look for "PostgreSQL"
+  - Make sure it's Running
+
+Problem: Email not sending (email_sent: false)
+Solution: Check your configuration
+  1. Verify .env file has YOUR Gmail address
+  2. Verify app password is correct (16 digits)
+  3. Restart backend after editing .env
+  4. Check Gmail security settings allow SMTP
+
+Problem: Frontend shows blank page
+Solution: Check browser console for errors
+  1. Press F12 in browser
+  2. Click Console tab
+  3. Look for red error messages
+  4. Check that backend is running on :8000
+
+Problem: Can't login to dashboard
+Solution: Use demo credentials
+  Email: admin@terrapulse.com
+  Password: admin123
+  
+  If still fails, backend might not be running
+
+===========================================================
+SUCCESS INDICATORS
+===========================================================
+
+✓ All systems running when you see:
+  - PowerShell 1: "Uvicorn running..."
+  - PowerShell 2: "Local: http://localhost:3000"
+  - Browser: Dashboard displays with data
+
+✓ Email alerts working when:
+  - PowerShell 3: Shows "email_sent": true
+  - Gmail: New email appears in inbox
+
+✓ Full system working when:
+  - Dashboard shows red banner for high AQI
+  - Map shows interactive markers
+  - Alerts send automatically for AQI > 200
+
+===========================================================
+YOU'RE ALL SET!
+===========================================================
+
+Now go through the checklist above and tell me:
+1. Did Gmail credentials update work?
+2. Did backend restart successfully?
+3. Did frontend start?
+4. Did test alert show email_sent: true?
+5. Did you receive the email?
+
+If ALL are YES → System is 100% working!
+
+===========================================================

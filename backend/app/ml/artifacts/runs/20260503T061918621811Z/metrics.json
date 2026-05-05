@@ -1,0 +1,31 @@
+{
+  "model_name": "RandomForestRegressor",
+  "model_version": "v1.0-rf",
+  "trained_at": "2026-05-03T06:19:18.621811",
+  "training_rows": 16912,
+  "test_rows": 4228,
+  "synthetic_rows_inserted": 0,
+  "validation_strategy": "time_based_holdout",
+  "train_window_start": "2026-03-19T18:00:00+00:00",
+  "train_window_end": "2026-04-23T23:00:00+00:00",
+  "test_window_start": "2026-04-23T23:00:00+00:00",
+  "test_window_end": "2026-05-02T18:33:26.516262+00:00",
+  "mae": 6.606,
+  "rmse": 10.242,
+  "r2": 0.902,
+  "features": [
+    "current_aqi",
+    "co2",
+    "temperature",
+    "humidity",
+    "wind_speed",
+    "rainfall",
+    "hour",
+    "day_of_week",
+    "month",
+    "city_code"
+  ],
+  "run_id": "20260503T061918621811Z",
+  "artifact_uri": "runs/20260503T061918621811Z",
+  "model_artifact": "aqi_forecaster.joblib"
+}

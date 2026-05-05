@@ -1,0 +1,59 @@
+===========================================================
+WHAT TO DO RIGHT NOW - COPY & PASTE INSTRUCTIONS
+===========================================================
+
+FILE TO EDIT:
+d:\Projects\terrapulse-ai\backend\.env
+
+WHAT TO CHANGE:
+
+FROM THIS (current):
+  SMTP_USER=your-email@gmail.com
+  SMTP_PASSWORD=your-app-password
+  ALERT_EMAIL=admin@terrapulse.com
+
+TO THIS (your Gmail):
+  SMTP_USER=YOUR_GMAIL_EMAIL@gmail.com
+  SMTP_PASSWORD=YOUR_16_DIGIT_APP_PASSWORD
+  ALERT_EMAIL=YOUR_GMAIL_EMAIL@gmail.com
+
+WHERE TO GET IT:
+1. Gmail app password: https://myaccount.google.com/apppasswords
+   (Select: Mail + Windows Computer)
+2. Your Gmail: The email you use to log into Gmail
+
+EXAMPLE (if your Gmail is john@gmail.com and app password is abcd efgh ijkl mnop):
+  SMTP_USER=john@gmail.com
+  SMTP_PASSWORD=abcd efgh ijkl mnop
+  ALERT_EMAIL=john@gmail.com
+
+===========================================================
+AFTER YOU UPDATE:
+===========================================================
+
+1. Save the .env file
+2. Restart backend (Ctrl+C and re-run uvicorn)
+3. Check backend console for "Database tables created successfully"
+4. Run the test alert command (PowerShell)
+5. Check your Gmail inbox for the alert email
+
+===========================================================
+EXACT TEST COMMAND (copy & paste in PowerShell):
+===========================================================
+
+$testBody = '{"city": "Ahmedabad", "aqi_value": 250}'
+Invoke-RestMethod -Uri "http://localhost:8000/api/alerts/test" -Method Post -ContentType "application/json" -Body $testBody | ConvertTo-Json
+
+Expected output:
+{
+  "alert_triggered": true,
+  "email_sent": true,
+  "city": "Ahmedabad",
+  "aqi_value": 250,
+  "threshold": 200,
+  "message": "Test alert processed. Email SENT to your-email@gmail.com"
+}
+
+If you see "email_sent: true" → Check your Gmail inbox!
+
+===========================================================

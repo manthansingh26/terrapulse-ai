@@ -1,0 +1,155 @@
+===========================================================
+EMAIL NOT ARRIVING? TROUBLESHOOTING GUIDE
+===========================================================
+
+DO THIS NOW TO FIND THE PROBLEM:
+
+STEP 1: GET BACKEND ERROR MESSAGE
+=================================
+
+In the PowerShell window where backend is running:
+
+Look for RED ERROR MESSAGES about SMTP
+
+Common errors:
+1. "SMTP connection refused"
+   → Gmail credentials wrong
+   → Port 587 blocked
+
+2. "Authentication failed"
+   → Gmail password wrong
+   → Using regular password instead of app password
+
+3. "SMTPAuthenticationError"
+   → App password format wrong
+   → Missing spaces in 16-digit password
+
+4. "starttls() got an unexpected keyword argument"
+   → Python email library issue
+   → Need to update email configuration
+
+STEP 2: CHECK YOUR .env FILE
+============================
+
+Open: d:\Projects\terrapulse-ai\backend\.env
+
+Lines 28-30 should look EXACTLY like:
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=YOUR_EMAIL@gmail.com
+SMTP_PASSWORD=YOUR_16_DIGIT_PASSWORD_WITH_SPACES
+ALERT_EMAIL=YOUR_EMAIL@gmail.com
+AQI_ALERT_THRESHOLD=200
+
+If you see:
+- your-email@gmail.com (placeholder text)
+- your-app-password (placeholder text)
+
+→ You haven't updated the file yet!
+
+STEP 3: RUN DEBUG TEST
+======================
+
+In PowerShell, paste this:
+
+$debugTest = @{
+    city = "Mumbai"
+    aqi_value = 300
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:8000/api/alerts/test" `
+  -Method Post `
+  -ContentType "application/json" `
+  -Body $debugTest | ConvertTo-Json
+
+Look at response:
+- If "email_sent": false → Check backend console for error
+- If "email_sent": true but no email → Check spam folder
+- If "alert_triggered": false → Backend restart might be needed
+
+STEP 4: CHECK GMAIL SPAM
+======================
+
+1. Open Gmail
+2. Go to SPAM folder
+3. Look for "High AQI Alert" email
+4. If found → Mark as "Not Spam"
+
+STEP 5: VERIFY GMAIL APP PASSWORD
+==================================
+
+1. Go to: https://myaccount.google.com/apppasswords
+2. Check if "Mail" app is listed
+3. Check if password is 16 digits (should be like: xxxx xxxx xxxx xxxx)
+4. If not there, generate NEW one:
+   - Select Mail + Windows Computer
+   - Get new password
+   - Update .env with new password
+   - Restart backend
+
+STEP 6: ENABLE LESS SECURE APPS (IF NEEDED)
+============================================
+
+1. Go to: https://myaccount.google.com/security
+2. Scroll down to "Less secure app access"
+3. If you see a warning, click and ENABLE
+4. This allows SMTP to connect
+
+STEP 7: CHECK GMAIL SMTP ALLOWED
+================================
+
+1. Go to: https://myaccount.google.com/device-security
+2. Make sure you see "Windows Computer" listed
+3. If not, you might need to reset app passwords
+
+===========================================================
+COMMON FIXES
+===========================================================
+
+IF EMAIL DOESN'T ARRIVE:
+
+Fix 1: Restart everything
+  1. Stop backend (Ctrl+C)
+  2. Wait 5 seconds
+  3. cd backend && uvicorn app.main:app --reload
+  4. Run test again
+
+Fix 2: Check email format
+  WRONG: SMTP_USER=myemail@gmail.com (no spaces)
+  RIGHT: SMTP_USER=myemail@gmail.com
+  
+  WRONG: SMTP_PASSWORD=abcdefghijklmnop (no spaces)
+  RIGHT: SMTP_PASSWORD=abcd efgh ijkl mnop
+
+Fix 3: Check Gmail blocked the connection
+  1. Go to https://myaccount.google.com/security
+  2. Look for "Sign-in attempt was blocked"
+  3. Click "Allow"
+  4. Run test again
+
+Fix 4: Generate new app password
+  1. Go to https://myaccount.google.com/apppasswords
+  2. Delete old "Mail" app password
+  3. Generate new one (Mail + Windows Computer)
+  4. Update .env
+  5. Restart backend
+  6. Run test again
+
+Fix 5: Check backend logs
+  Look in backend PowerShell window for any red text
+  Copy the error message
+  It will tell you exactly what's wrong
+
+===========================================================
+IF STILL NOT WORKING - SEND ME:
+===========================================================
+
+1. Screenshot of backend console (red error messages)
+2. Content of your .env file (lines 27-32)
+3. Output from running test command
+4. Check if Gmail shows any blocked attempt
+
+Then I can debug exactly what's wrong!
+
+===========================================================

@@ -1,0 +1,482 @@
+[
+  {
+    "sample": 1,
+    "actual_aqi": 128,
+    "predicted_aqi": 124,
+    "error": -4
+  },
+  {
+    "sample": 2,
+    "actual_aqi": 120,
+    "predicted_aqi": 122,
+    "error": 2
+  },
+  {
+    "sample": 3,
+    "actual_aqi": 71,
+    "predicted_aqi": 65,
+    "error": -6
+  },
+  {
+    "sample": 4,
+    "actual_aqi": 151,
+    "predicted_aqi": 145,
+    "error": -6
+  },
+  {
+    "sample": 5,
+    "actual_aqi": 107,
+    "predicted_aqi": 108,
+    "error": 1
+  },
+  {
+    "sample": 6,
+    "actual_aqi": 70,
+    "predicted_aqi": 60,
+    "error": -10
+  },
+  {
+    "sample": 7,
+    "actual_aqi": 56,
+    "predicted_aqi": 55,
+    "error": -1
+  },
+  {
+    "sample": 8,
+    "actual_aqi": 134,
+    "predicted_aqi": 133,
+    "error": -1
+  },
+  {
+    "sample": 9,
+    "actual_aqi": 44,
+    "predicted_aqi": 38,
+    "error": -6
+  },
+  {
+    "sample": 10,
+    "actual_aqi": 54,
+    "predicted_aqi": 56,
+    "error": 2
+  },
+  {
+    "sample": 11,
+    "actual_aqi": 122,
+    "predicted_aqi": 115,
+    "error": -7
+  },
+  {
+    "sample": 12,
+    "actual_aqi": 41,
+    "predicted_aqi": 32,
+    "error": -9
+  },
+  {
+    "sample": 13,
+    "actual_aqi": 43,
+    "predicted_aqi": 54,
+    "error": 11
+  },
+  {
+    "sample": 14,
+    "actual_aqi": 118,
+    "predicted_aqi": 119,
+    "error": 1
+  },
+  {
+    "sample": 15,
+    "actual_aqi": 67,
+    "predicted_aqi": 79,
+    "error": 12
+  },
+  {
+    "sample": 16,
+    "actual_aqi": 29,
+    "predicted_aqi": 39,
+    "error": 10
+  },
+  {
+    "sample": 17,
+    "actual_aqi": 97,
+    "predicted_aqi": 105,
+    "error": 8
+  },
+  {
+    "sample": 18,
+    "actual_aqi": 72,
+    "predicted_aqi": 72,
+    "error": 0
+  },
+  {
+    "sample": 19,
+    "actual_aqi": 59,
+    "predicted_aqi": 61,
+    "error": 2
+  },
+  {
+    "sample": 20,
+    "actual_aqi": 78,
+    "predicted_aqi": 86,
+    "error": 8
+  },
+  {
+    "sample": 21,
+    "actual_aqi": 78,
+    "predicted_aqi": 65,
+    "error": -13
+  },
+  {
+    "sample": 22,
+    "actual_aqi": 74,
+    "predicted_aqi": 66,
+    "error": -8
+  },
+  {
+    "sample": 23,
+    "actual_aqi": 49,
+    "predicted_aqi": 48,
+    "error": -1
+  },
+  {
+    "sample": 24,
+    "actual_aqi": 60,
+    "predicted_aqi": 51,
+    "error": -9
+  },
+  {
+    "sample": 25,
+    "actual_aqi": 44,
+    "predicted_aqi": 49,
+    "error": 5
+  },
+  {
+    "sample": 26,
+    "actual_aqi": 60,
+    "predicted_aqi": 57,
+    "error": -3
+  },
+  {
+    "sample": 27,
+    "actual_aqi": 107,
+    "predicted_aqi": 99,
+    "error": -8
+  },
+  {
+    "sample": 28,
+    "actual_aqi": 46,
+    "predicted_aqi": 41,
+    "error": -5
+  },
+  {
+    "sample": 29,
+    "actual_aqi": 56,
+    "predicted_aqi": 58,
+    "error": 2
+  },
+  {
+    "sample": 30,
+    "actual_aqi": 127,
+    "predicted_aqi": 135,
+    "error": 8
+  },
+  {
+    "sample": 31,
+    "actual_aqi": 128,
+    "predicted_aqi": 128,
+    "error": 0
+  },
+  {
+    "sample": 32,
+    "actual_aqi": 53,
+    "predicted_aqi": 51,
+    "error": -2
+  },
+  {
+    "sample": 33,
+    "actual_aqi": 68,
+    "predicted_aqi": 60,
+    "error": -8
+  },
+  {
+    "sample": 34,
+    "actual_aqi": 98,
+    "predicted_aqi": 104,
+    "error": 6
+  },
+  {
+    "sample": 35,
+    "actual_aqi": 116,
+    "predicted_aqi": 116,
+    "error": 0
+  },
+  {
+    "sample": 36,
+    "actual_aqi": 54,
+    "predicted_aqi": 63,
+    "error": 9
+  },
+  {
+    "sample": 37,
+    "actual_aqi": 77,
+    "predicted_aqi": 79,
+    "error": 2
+  },
+  {
+    "sample": 38,
+    "actual_aqi": 97,
+    "predicted_aqi": 94,
+    "error": -3
+  },
+  {
+    "sample": 39,
+    "actual_aqi": 118,
+    "predicted_aqi": 117,
+    "error": -1
+  },
+  {
+    "sample": 40,
+    "actual_aqi": 107,
+    "predicted_aqi": 96,
+    "error": -11
+  },
+  {
+    "sample": 41,
+    "actual_aqi": 121,
+    "predicted_aqi": 129,
+    "error": 8
+  },
+  {
+    "sample": 42,
+    "actual_aqi": 88,
+    "predicted_aqi": 104,
+    "error": 16
+  },
+  {
+    "sample": 43,
+    "actual_aqi": 47,
+    "predicted_aqi": 53,
+    "error": 6
+  },
+  {
+    "sample": 44,
+    "actual_aqi": 137,
+    "predicted_aqi": 145,
+    "error": 8
+  },
+  {
+    "sample": 45,
+    "actual_aqi": 104,
+    "predicted_aqi": 101,
+    "error": -3
+  },
+  {
+    "sample": 46,
+    "actual_aqi": 46,
+    "predicted_aqi": 59,
+    "error": 13
+  },
+  {
+    "sample": 47,
+    "actual_aqi": 57,
+    "predicted_aqi": 58,
+    "error": 1
+  },
+  {
+    "sample": 48,
+    "actual_aqi": 130,
+    "predicted_aqi": 119,
+    "error": -11
+  },
+  {
+    "sample": 49,
+    "actual_aqi": 70,
+    "predicted_aqi": 77,
+    "error": 7
+  },
+  {
+    "sample": 50,
+    "actual_aqi": 63,
+    "predicted_aqi": 55,
+    "error": -8
+  },
+  {
+    "sample": 51,
+    "actual_aqi": 117,
+    "predicted_aqi": 127,
+    "error": 10
+  },
+  {
+    "sample": 52,
+    "actual_aqi": 39,
+    "predicted_aqi": 37,
+    "error": -2
+  },
+  {
+    "sample": 53,
+    "actual_aqi": 69,
+    "predicted_aqi": 78,
+    "error": 9
+  },
+  {
+    "sample": 54,
+    "actual_aqi": 119,
+    "predicted_aqi": 126,
+    "error": 7
+  },
+  {
+    "sample": 55,
+    "actual_aqi": 94,
+    "predicted_aqi": 89,
+    "error": -5
+  },
+  {
+    "sample": 56,
+    "actual_aqi": 52,
+    "predicted_aqi": 57,
+    "error": 5
+  },
+  {
+    "sample": 57,
+    "actual_aqi": 107,
+    "predicted_aqi": 104,
+    "error": -3
+  },
+  {
+    "sample": 58,
+    "actual_aqi": 120,
+    "predicted_aqi": 122,
+    "error": 2
+  },
+  {
+    "sample": 59,
+    "actual_aqi": 71,
+    "predicted_aqi": 84,
+    "error": 13
+  },
+  {
+    "sample": 60,
+    "actual_aqi": 74,
+    "predicted_aqi": 78,
+    "error": 4
+  },
+  {
+    "sample": 61,
+    "actual_aqi": 64,
+    "predicted_aqi": 67,
+    "error": 3
+  },
+  {
+    "sample": 62,
+    "actual_aqi": 111,
+    "predicted_aqi": 108,
+    "error": -3
+  },
+  {
+    "sample": 63,
+    "actual_aqi": 49,
+    "predicted_aqi": 48,
+    "error": -1
+  },
+  {
+    "sample": 64,
+    "actual_aqi": 59,
+    "predicted_aqi": 74,
+    "error": 15
+  },
+  {
+    "sample": 65,
+    "actual_aqi": 76,
+    "predicted_aqi": 85,
+    "error": 9
+  },
+  {
+    "sample": 66,
+    "actual_aqi": 69,
+    "predicted_aqi": 71,
+    "error": 2
+  },
+  {
+    "sample": 67,
+    "actual_aqi": 170,
+    "predicted_aqi": 155,
+    "error": -15
+  },
+  {
+    "sample": 68,
+    "actual_aqi": 72,
+    "predicted_aqi": 82,
+    "error": 10
+  },
+  {
+    "sample": 69,
+    "actual_aqi": 39,
+    "predicted_aqi": 47,
+    "error": 8
+  },
+  {
+    "sample": 70,
+    "actual_aqi": 123,
+    "predicted_aqi": 125,
+    "error": 2
+  },
+  {
+    "sample": 71,
+    "actual_aqi": 144,
+    "predicted_aqi": 145,
+    "error": 1
+  },
+  {
+    "sample": 72,
+    "actual_aqi": 44,
+    "predicted_aqi": 45,
+    "error": 1
+  },
+  {
+    "sample": 73,
+    "actual_aqi": 65,
+    "predicted_aqi": 59,
+    "error": -6
+  },
+  {
+    "sample": 74,
+    "actual_aqi": 110,
+    "predicted_aqi": 106,
+    "error": -4
+  },
+  {
+    "sample": 75,
+    "actual_aqi": 96,
+    "predicted_aqi": 86,
+    "error": -10
+  },
+  {
+    "sample": 76,
+    "actual_aqi": 99,
+    "predicted_aqi": 99,
+    "error": 0
+  },
+  {
+    "sample": 77,
+    "actual_aqi": 68,
+    "predicted_aqi": 80,
+    "error": 12
+  },
+  {
+    "sample": 78,
+    "actual_aqi": 91,
+    "predicted_aqi": 85,
+    "error": -6
+  },
+  {
+    "sample": 79,
+    "actual_aqi": 96,
+    "predicted_aqi": 90,
+    "error": -6
+  },
+  {
+    "sample": 80,
+    "actual_aqi": 249,
+    "predicted_aqi": 72,
+    "error": -177
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from app.main import app; from app.models.models import AlertHistory; from app.core.email import send_alert_email; print\\('✅ All imports successful'\\)\")",
+      "Bash(python -c \"from app.main import app; from app.models.models import AlertHistory; from app.core.email import send_alert_email; print\\('All imports successful'\\)\")",
+      "Bash(python test_alerts.py)"
+    ]
+  }
+}

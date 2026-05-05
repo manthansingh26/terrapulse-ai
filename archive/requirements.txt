@@ -1,0 +1,10 @@
+torch
+pandas
+numpy
+streamlit
+plotly
+opencv-python
+scikit-learn
+requests
+folium>=0.15.0
+streamlit-folium>=0.15.0

@@ -1,0 +1,77 @@
+===========================================================
+COPY & PASTE - EMAIL ALERT TEST
+===========================================================
+
+BEFORE YOU RUN THIS:
+1. Edit backend\.env with your Gmail credentials
+2. Restart backend
+3. Make sure backend shows "Uvicorn running..."
+
+===========================================================
+COPY THIS ENTIRE BLOCK AND PASTE IN POWERSHELL:
+===========================================================
+
+$testBody = '{"city": "Ahmedabad", "aqi_value": 250}'
+Invoke-RestMethod -Uri "http://localhost:8000/api/alerts/test" -Method Post -ContentType "application/json" -Body $testBody | ConvertTo-Json
+
+===========================================================
+EXPECTED OUTPUT:
+===========================================================
+
+{
+  "alert_triggered": true,
+  "email_sent": true,
+  "city": "Ahmedabad",
+  "aqi_value": 250,
+  "threshold": 200,
+  "message": "Test alert processed. Email SENT to your-email@gmail.com"
+}
+
+===========================================================
+WHAT TO CHECK:
+===========================================================
+
+1. Look for: "email_sent": true
+   If TRUE → Email was sent! Check Gmail!
+
+2. Look for: "alert_triggered": true
+   If TRUE → Alert system is working!
+
+3. Check your Gmail inbox for:
+   Subject: "High AQI Alert - Ahmedabad (AQI: 250)"
+   From: Your configured email
+
+4. Email should arrive within 30 seconds
+
+===========================================================
+IF SOMETHING IS WRONG:
+===========================================================
+
+"email_sent": false
+→ Check backend console for SMTP error
+→ Verify Gmail credentials in .env
+→ Restart backend after editing .env
+
+"alert_triggered": false
+→ Backend might not be restarted
+→ Check "Uvicorn running..." in console
+
+Error: "Connection refused"
+→ Backend not running
+→ Start with: cd backend && uvicorn app.main:app --reload
+
+===========================================================
+SUCCESS LOOKS LIKE:
+===========================================================
+
+PowerShell output shows:
+✓ "email_sent": true
+✓ Response shows all data correct
+✓ No error messages
+
+Gmail inbox shows:
+✓ New email from your configured address
+✓ Subject contains "High AQI Alert - Ahmedabad (AQI: 250)"
+✓ Email content has health recommendations
+
+===========================================================

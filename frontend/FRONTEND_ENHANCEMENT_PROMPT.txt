@@ -1,0 +1,374 @@
+===========================================================
+TERRAPULSE AI - FRONTEND UI/UX ENHANCEMENT PROMPT
+For Claude Code - Copy & Paste Directly
+===========================================================
+
+PROJECT: TerraPulse AI Frontend Enhancement
+WORKSPACE: d:\Projects\terrapulse-ai\frontend
+
+IMPORTANT CONSTRAINTS:
+- DO NOT modify any backend files
+- DO NOT modify .env or configuration
+- DO NOT touch src/services/api.ts (keep API calls same)
+- ONLY enhance frontend UI/UX in these folders:
+  - src/pages/
+  - src/components/
+  - src/styles/
+  - tailwind.config.js (if needed)
+
+===========================================================
+CURRENT STATE:
+===========================================================
+
+Frontend is WORKING but needs UI/UX improvements:
+✓ 6 pages working (Dashboard, Map, Analytics, Profile, Login, Register)
+✓ Real-time data updates working
+✓ Email alerts working
+✓ WebSocket connected
+
+WHAT NEEDS IMPROVEMENT:
+❌ Dashboard layout feels plain
+❌ Alert banner could be more eye-catching
+❌ Statistics cards need better styling
+❌ City rankings needs better visualization
+❌ Map page needs better legend
+❌ Analytics charts need better styling
+❌ Forms could be more user-friendly
+❌ Mobile responsiveness needs polish
+❌ Dark mode not implemented
+❌ Animations could be smoother
+❌ Loading states could be better
+
+===========================================================
+FRONTEND UI/UX ENHANCEMENT CHECKLIST:
+===========================================================
+
+DASHBOARD PAGE IMPROVEMENTS:
+[ ] Make alert banner animate more (pulse, slide, or wave effect)
+[ ] Add gradient backgrounds to statistics cards
+[ ] Add icons to each statistic (better visual)
+[ ] Improve City Rankings display (add sparklines, trends)
+[ ] Make AQI Status Distribution pie chart interactive
+[ ] Add hover effects on cards
+[ ] Better color scheme (more vibrant)
+[ ] Add loading skeleton screens
+
+MAP PAGE IMPROVEMENTS:
+[ ] Better legend styling with gradient colors
+[ ] Add city info sidebar showing details on marker click
+[ ] Improve popup styling
+[ ] Add zoom controls styling
+[ ] Show real-time update indicator
+[ ] Add layer toggle (show/hide unhealthy cities)
+
+ANALYTICS PAGE IMPROVEMENTS:
+[ ] Make charts interactive (click to zoom/filter)
+[ ] Add date range picker
+[ ] Better chart colors matching brand
+[ ] Add comparison slider for cities
+[ ] Add statistics summary cards above charts
+[ ] Improve chart legends
+
+LOGIN/REGISTER PAGE IMPROVEMENTS:
+[ ] Add background image or gradient
+[ ] Better form styling
+[ ] Add password strength indicator
+[ ] Smooth form transitions
+[ ] Better error messages (inline validation)
+[ ] Remember me checkbox styling
+[ ] Social login buttons (UI only, no backend)
+
+PROFILE PAGE IMPROVEMENTS:
+[ ] Add user avatar/profile picture
+[ ] Better account information layout
+[ ] Add edit profile button
+[ ] Add alert preferences section
+[ ] Better API documentation display
+[ ] Add user statistics (alerts received, etc)
+
+LAYOUT/COMPONENTS IMPROVEMENTS:
+[ ] Enhance sidebar navigation (active states, hover effects)
+[ ] Better top header styling
+[ ] Add breadcrumbs
+[ ] Improve mobile hamburger menu
+[ ] Add toast notifications
+[ ] Add loading spinners
+[ ] Better error boundaries
+[ ] Smooth page transitions
+
+COLOR & THEME IMPROVEMENTS:
+[ ] Primary: #1e3a8a (keep)
+[ ] Secondary: #0ea5e9 (keep)
+[ ] Accent: #f97316 (keep)
+[ ] Add: #06b6d4 (cyan for energy)
+[ ] Add: #8b5cf6 (purple for premium)
+[ ] Better gradient combinations
+[ ] Dark mode toggle in profile
+
+ANIMATIONS & MICRO-INTERACTIONS:
+[ ] Page load animations (fade in)
+[ ] Card hover animations (lift/shadow)
+[ ] Button hover effects (scale, glow)
+[ ] Smooth transitions between pages
+[ ] Loading animations (spinners, skeleton)
+[ ] Success/error animations
+[ ] Smooth number counting animations
+
+RESPONSIVE DESIGN:
+[ ] Better mobile layout
+[ ] Collapse charts on mobile
+[ ] Improve touch targets (bigger buttons)
+[ ] Better sidebar on mobile
+[ ] Responsive grid layouts
+[ ] Mobile-optimized forms
+[ ] Landscape mode support
+
+===========================================================
+TECHNOLOGY STACK (DO NOT CHANGE):
+===========================================================
+
+- React 18.2 with TypeScript 5.3
+- Tailwind CSS 3.3 (utility-first styling)
+- Recharts 2.10 (charts)
+- Leaflet + React-Leaflet (maps)
+- Lucide React (icons - 400+ available)
+- React Router 6.20 (navigation)
+- Axios (API calls)
+
+AVAILABLE ICONS FROM LUCIDE REACT:
+- AlertTriangle, AlertCircle, AlertOctagon
+- Cloud, CloudRain, Wind, Droplets
+- TrendingUp, TrendingDown, BarChart3
+- MapPin, Map, Compass, Navigation
+- Users, User, Settings, LogOut
+- Home, Menu, X, ChevronRight, etc.
+
+===========================================================
+SPECIFIC ENHANCEMENTS TO IMPLEMENT:
+===========================================================
+
+1. DASHBOARD ALERT BANNER
+   Current: Simple red box with text
+   Enhance:
+   - Add animated border (flowing effect)
+   - Add gradient background (red to orange)
+   - Add icon animation (pulsing AlertTriangle)
+   - Add shadow that glows
+   - Make cities list scrollable if many
+   - Add dismiss button (collapse banner)
+
+2. STATISTICS CARDS
+   Current: Plain white cards
+   Enhance:
+   - Add gradient backgrounds per stat type
+     * AQI: red-to-orange gradient
+     * Temperature: orange-to-yellow gradient
+     * Cities: blue-to-cyan gradient
+   - Add larger icons (20x20 size)
+   - Add animated numbers (count up from 0)
+   - Add small sparkline chart showing trend
+   - Better typography (larger numbers)
+
+3. CITY RANKINGS
+   Current: Simple list
+   Enhance:
+   - Add ranking badges (1st, 2nd, 3rd place)
+   - Add AQI status color dots
+   - Add sparkline trend (mini chart)
+   - Hover effects showing more details
+   - Add progress bar for AQI level
+   - Alternating row backgrounds
+
+4. AQI PIE CHART
+   Current: Standard pie chart
+   Enhance:
+   - Add border/stroke to segments
+   - Add percentage labels
+   - Make segments clickable (shows cities)
+   - Better colors (green, yellow, orange, red, purple)
+   - Add legend with better styling
+   - Hover tooltips with city count
+
+5. MAP PAGE
+   Current: Basic map with markers
+   Enhance:
+   - Add beautiful legend with gradients
+   - Add sidebar on right showing marker details
+   - Better popup styling (card format)
+   - Add search box (find city)
+   - Add layer controls (show/hide unhealthy)
+   - Add "focus on unhealthy cities" button
+   - Better zoom controls styling
+
+6. ANALYTICS PAGE
+   Current: Multiple charts stacked
+   Enhance:
+   - Add tab system (different views)
+   - Add date range picker
+   - Add city comparison toggle
+   - Better chart spacing
+   - Add summary statistics above
+   - Make charts responsive to tab selection
+   - Add export button (chart as image)
+
+7. LOADING & ERRORS
+   Current: Simple spinner
+   Enhance:
+   - Add skeleton screens (loading placeholders)
+   - Better loading animations
+   - Smooth transitions
+   - Better error messages
+   - Retry buttons with visual feedback
+   - Loading progress indicator
+
+8. FORMS (LOGIN/REGISTER)
+   Current: Basic form inputs
+   Enhance:
+   - Add floating labels
+   - Add password strength indicator
+   - Add input validation feedback (real-time)
+   - Better focus states
+   - Add success animations
+   - Better error styling
+   - Add "show password" toggle with icon
+
+9. MOBILE RESPONSIVENESS
+   Current: Works but basic
+   Enhance:
+   - Hide charts on very small screens
+   - Better sidebar collapse
+   - Larger touch targets
+   - Swipe navigation
+   - Better form layout on mobile
+   - Optimized for landscape mode
+
+===========================================================
+FILE MODIFICATIONS ALLOWED:
+===========================================================
+
+MODIFY THESE (UI/UX only):
+✓ src/pages/Dashboard.tsx - Better card styling, animations
+✓ src/pages/Map.tsx - Better legend, popups, sidebar
+✓ src/pages/Analytics.tsx - Better charts, tabs, dates
+✓ src/pages/Profile.tsx - Better layout, sections
+✓ src/pages/Login.tsx - Better form, styling
+✓ src/pages/Register.tsx - Better form, validation
+✓ src/components/Layout.tsx - Better header, sidebar styling
+✓ src/components/ProtectedRoute.tsx - If needed
+✓ src/styles/global.css - Add animations, utilities
+✓ tailwind.config.js - Add custom theme colors, animations
+✓ postcss.config.js - If needed for PostCSS plugins
+
+DO NOT MODIFY:
+✗ src/services/api.ts (keep API calls exactly same)
+✗ src/context/AuthContext.tsx (keep auth logic same)
+✗ src/hooks/useAuth.ts (keep auth hook same)
+✗ src/hooks/useWebSocket.ts (keep WebSocket same)
+✗ package.json (don't add new packages)
+✗ vite.config.ts (keep build config same)
+✗ tsconfig.json (keep TypeScript config same)
+✗ Any backend files
+✗ .env files
+
+===========================================================
+TAILWIND CSS CUSTOM CONFIGURATIONS TO ADD:
+===========================================================
+
+Animations to add in tailwind.config.js:
+- fadeIn (opacity: 0 to 1)
+- slideIn (translate: left to 0)
+- bounce (smooth bounce effect)
+- pulse (smooth pulsing)
+- shimmer (loading animation)
+- glow (shadow glow effect)
+- float (floating animation)
+
+Colors to add:
+- cyber-blue: #00d9ff
+- neon-pink: #ff006e
+- electric-purple: #8b5cf6
+- acid-green: #39ff14
+
+===========================================================
+DELIVERABLES EXPECTED:
+===========================================================
+
+After enhancement, system should have:
+[✓] Beautiful, modern dashboard
+[✓] Eye-catching alert banner
+[✓] Smooth animations throughout
+[✓] Better data visualization
+[✓] Improved mobile experience
+[✓] Better user feedback (loading, errors)
+[✓] Professional color scheme
+[✓] Smooth page transitions
+[✓] Interactive elements
+[✓] Better accessibility
+
+===========================================================
+TESTING AFTER ENHANCEMENT:
+===========================================================
+
+1. Dashboard loads with animations
+2. Alert banner appears and pulsates when AQI > 200
+3. Statistics cards show gradient backgrounds
+4. City rankings look better organized
+5. Map displays with better styling
+6. Analytics charts look modern
+7. Login/Register forms have better UX
+8. Mobile view is responsive and beautiful
+9. All page transitions are smooth
+10. Loading states look professional
+11. Hover effects work on all interactive elements
+12. No console errors or warnings
+13. All data still loads correctly from backend
+14. WebSocket still works in real-time
+
+===========================================================
+OPTIONAL NICE-TO-HAVES (if time permits):
+===========================================================
+
+- Dark mode toggle
+- Animated background patterns
+- Confetti animation on successful login
+- Sound effects toggle
+- Custom chart themes
+- Keyboard shortcuts
+- Search functionality
+- Favorites/bookmarks for cities
+- Export dashboard as PDF
+- Share dashboard link
+- Real-time notifications popup
+
+===========================================================
+BEFORE YOU START:
+===========================================================
+
+1. Backup current frontend folder
+2. Run: npm run dev to verify it works
+3. Open browser to http://localhost:3000
+4. Verify all pages load correctly
+5. Note any current issues to avoid breaking them
+
+AFTER YOU COMPLETE:
+===========================================================
+
+1. Test all pages load correctly
+2. Verify real-time updates still work
+3. Check console for errors (F12)
+4. Test on mobile view (F12 responsive mode)
+5. Verify animations are smooth (not choppy)
+6. Check that backend API calls still work
+7. Verify login/logout still works
+8. Test alert banner appears correctly
+9. Check map loads with new styling
+10. Verify all charts display data
+
+===========================================================
+GO AHEAD AND ENHANCE THE FRONTEND!
+===========================================================
+
+This prompt defines exactly what to improve without touching backend.
+Claude Code will understand what needs to be done.
+
+Good luck making TerraPulse AI look amazing! 🚀
