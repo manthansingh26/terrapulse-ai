@@ -20,18 +20,20 @@ TerraPulse AI is complete as a local full-stack portfolio/demo project:
 
 It is not yet a fully hosted production SaaS product. See [PROJECT_STATUS.md](./PROJECT_STATUS.md) for the exact completion status and remaining production work.
 
-## Live Local URLs
+ ## Live Local URLs
 
-When the app is running locally:
+  Replace it with:
 
-- Frontend: http://127.0.0.1:3000/
-- Backend API: http://127.0.0.1:8000/
-- API Docs: http://127.0.0.1:8000/api/docs
+  ## Live Demo
 
-Demo login:
+  - Frontend: https://terrapulse-ai.vercel.app
+  - Backend API: https://terrapulse-ai.onrender.com
+  - API Docs: https://terrapulse-ai.onrender.com/api/docs
 
-- Username: `demo`
-- Password: `demo123`
+  Demo login:
+
+  - Username: `demo`
+  - Password: `demo123`
 
 ## Tech Stack
 
