@@ -3,6 +3,7 @@ import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from 'react-leaf
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { apiClient, City } from '@/services/api'
+import DataSourceNotice from '@/components/DataSourceNotice'
 import {
   AlertCircle,
   Building2,
@@ -114,7 +115,7 @@ const MapMarkers: React.FC<{
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-base font-bold text-slate-950">{city.city}</h3>
-                    <p className="text-xs font-medium text-slate-500">{getAQILabel(city.current_aqi)} air quality</p>
+                    <p className="text-xs font-medium text-slate-500">{getAQILabel(city.current_aqi)} demo AQI</p>
                   </div>
                   <span className="rounded-md px-2 py-1 text-sm font-bold text-white" style={{ backgroundColor: color }}>
                     {city.current_aqi || 'N/A'}
@@ -217,6 +218,8 @@ const Map: React.FC = () => {
 
   return (
     <div className="space-y-5 animate-fade-in">
+      <DataSourceNotice />
+
       <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
@@ -224,9 +227,9 @@ const Map: React.FC = () => {
               <LocateFixed size={14} />
               Geospatial monitoring
             </div>
-            <h1 className="mt-4 text-3xl font-bold text-slate-950 lg:text-4xl">Live AQI map intelligence</h1>
+            <h1 className="mt-4 text-3xl font-bold text-slate-950 lg:text-4xl">Demo AQI map intelligence</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              Explore city-level air quality across India with risk filters, live sensor summaries,
+              Explore city-level sample air quality across India with risk filters, demo readings,
               and operational context for each monitored location.
             </p>
           </div>
@@ -325,8 +328,8 @@ const Map: React.FC = () => {
                   <Radio size={18} />
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Live city map</p>
-                  <p className="text-sm font-semibold text-slate-950">Live sensor overlay active</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Demo city map</p>
+                  <p className="text-sm font-semibold text-slate-950">Sample AQI overlay active</p>
                 </div>
               </div>
             </div>
@@ -374,7 +377,7 @@ const Map: React.FC = () => {
                 <div className="mt-5 rounded-lg p-4 text-white" style={{ backgroundColor: getAQIMarkerColor(selectedCity.current_aqi) }}>
                   <div className="flex items-end justify-between">
                     <div>
-                      <p className="text-sm font-semibold opacity-90">Current AQI</p>
+                      <p className="text-sm font-semibold opacity-90">Sample AQI</p>
                       <p className="mt-1 text-4xl font-bold">{selectedCity.current_aqi || 'N/A'}</p>
                     </div>
                     <p className="rounded-md bg-white/20 px-3 py-2 text-sm font-bold">{getAQILabel(selectedCity.current_aqi)}</p>
@@ -451,7 +454,7 @@ const Map: React.FC = () => {
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-950">AQI legend</h2>
+            <h2 className="text-lg font-bold text-slate-950">Demo AQI legend</h2>
             <div className="mt-4 space-y-3">
               {[
                 { label: 'Good', range: '0-50', color: '#10b981' },
@@ -477,8 +480,8 @@ const Map: React.FC = () => {
               <h2 className="text-lg font-bold">Operational note</h2>
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-300">
-              Use the risk filters to isolate elevated zones, then select a marker to inspect city
-              conditions before moving into analytics or alert workflows.
+              Use the risk filters to inspect the demo scenario, then select a marker to review
+              sample city conditions before moving into analytics or alert workflows.
             </p>
           </div>
         </aside>

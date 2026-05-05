@@ -2,6 +2,9 @@ import React from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { Mail, User, Calendar, Shield } from 'lucide-react'
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+const API_DOCS_URL = API_BASE_URL.replace(/\/api\/?$/, '/api/docs')
+
 const Profile: React.FC = () => {
   const { user } = useAuth()
 
@@ -118,13 +121,13 @@ const Profile: React.FC = () => {
             <div>
               <h3 className="font-semibold text-gray-900 mb-2">API Endpoint</h3>
               <code className="bg-white px-4 py-2 rounded-lg text-sm block text-gray-700 break-all">
-                http://localhost:8000/api
+                {API_BASE_URL}
               </code>
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 mb-2">API Documentation</h3>
               <a
-                href="http://localhost:8000/api/docs"
+                href={API_DOCS_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline text-sm"

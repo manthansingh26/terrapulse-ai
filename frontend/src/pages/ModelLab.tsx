@@ -42,6 +42,7 @@ import {
   MLModelRunSummary,
   MLTrainingMetrics,
 } from '@/services/api'
+import DataSourceNotice from '@/components/DataSourceNotice'
 
 const riskClass = {
   Good: 'border-emerald-200 bg-emerald-50 text-emerald-700',
@@ -298,6 +299,8 @@ const ModelLab: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <DataSourceNotice />
+
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-slate-950 text-white shadow-xl">
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="p-6 lg:p-8">
@@ -306,11 +309,12 @@ const ModelLab: React.FC = () => {
               Model Lab
             </div>
             <h1 className="mt-5 text-3xl font-bold leading-tight lg:text-5xl">
-              AQI forecasting model workspace
+              Demo AQI forecasting model workspace
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 lg:text-base">
               Inspect the trained Random Forest pipeline behind TerraPulse AI. This page exposes
-              training quality, feature importance, retraining, and city-level 24-hour forecasts.
+              training quality, feature importance, retraining, and city-level 24-hour forecasts
+              built from demo AQI records.
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3 text-sm">
@@ -635,8 +639,8 @@ const ModelLab: React.FC = () => {
               <p className="text-sm font-bold">Pipeline note</p>
             </div>
             <p className="mt-2 text-sm leading-6 text-cyan-800">
-              The current model trains from PostgreSQL records. Synthetic hourly history is used
-              until a larger real AQI ingestion pipeline is connected.
+              The current model trains from PostgreSQL demo records. Synthetic hourly history is used
+              until a larger verified AQI ingestion pipeline is connected.
             </p>
           </div>
 
@@ -836,7 +840,7 @@ const ModelLab: React.FC = () => {
             <thead>
               <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
                 <th className="px-3 py-3">City</th>
-                <th className="px-3 py-3">Current AQI</th>
+                <th className="px-3 py-3">Sample AQI</th>
                 <th className="px-3 py-3">Predicted AQI</th>
                 <th className="px-3 py-3">Change</th>
                 <th className="px-3 py-3">Risk</th>

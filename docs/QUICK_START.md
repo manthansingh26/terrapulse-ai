@@ -18,6 +18,12 @@ Demo login:
 | --- | --- |
 | `demo` | `demo123` |
 
+## Data Source Notice
+
+AQI and weather values in the demo are seeded sample records, not official real-time
+city AQI readings. Use the app as a portfolio/demo system until verified scheduled
+ingestion is connected.
+
 ## Start Locally On Windows
 
 Backend:
@@ -55,8 +61,8 @@ npm run build
 
 1. Open http://127.0.0.1:3000/
 2. Login with `demo` / `demo123`.
-3. Go to `Dashboard` for AQI and ML risk summaries.
-4. Go to `Map` for city-level AQI markers.
+3. Go to `Dashboard` for demo AQI and ML risk summaries.
+4. Go to `Map` for city-level demo AQI markers.
 5. Go to `Analytics` for charts and trends.
 6. Go to `Model Lab` for:
    - model metrics
@@ -95,4 +101,3 @@ GET  /api/ml/explain/{city}
 | `frontend/src/pages/ModelLab.tsx` | ML operations UI |
 | `backend/app/ml/aqi_model.py` | Training, inference, and explanations |
 | `backend/app/api/endpoints/ml.py` | ML API endpoints |
-

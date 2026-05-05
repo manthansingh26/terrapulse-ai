@@ -20,20 +20,23 @@ TerraPulse AI is complete as a local full-stack portfolio/demo project:
 
 It is not yet a fully hosted production SaaS product. See [PROJECT_STATUS.md](./PROJECT_STATUS.md) for the exact completion status and remaining production work.
 
- ## Live Local URLs
+## Live Demo
 
-  Replace it with:
+- Frontend: https://terrapulse-ai.vercel.app
+- Backend API: https://terrapulse-ai.onrender.com
+- API Docs: https://terrapulse-ai.onrender.com/api/docs
 
-  ## Live Demo
+Demo login:
 
-  - Frontend: https://terrapulse-ai.vercel.app
-  - Backend API: https://terrapulse-ai.onrender.com
-  - API Docs: https://terrapulse-ai.onrender.com/api/docs
+- Username: `demo`
+- Password: `demo123`
 
-  Demo login:
+## Data Source Notice
 
-  - Username: `demo`
-  - Password: `demo123`
+The deployed demo currently uses seeded sample AQI/weather records and saved ML artifacts.
+AQI values shown in the dashboard, map, analytics, and Model Lab are not official real-time
+city readings. Real scheduled ingestion from verified providers such as WAQI, CPCB, or
+OpenWeather is listed as production work.
 
 ## Tech Stack
 
@@ -49,9 +52,9 @@ It is not yet a fully hosted production SaaS product. See [PROJECT_STATUS.md](./
 
 - User registration and login
 - Protected dashboard routes
-- AQI and environmental analytics
+- Demo AQI and environmental analytics
 - Interactive city map
-- Real-time WebSocket city data
+- Demo city data with WebSocket support
 - Email and ML forecast alert support
 - Model Lab for ML operations
 - AQI 24-hour forecasting
@@ -181,4 +184,3 @@ The app is demo-complete. For production deployment, finish:
 - Model drift monitoring and scheduled retraining
 
 See [PROJECT_STATUS.md](./PROJECT_STATUS.md).
-

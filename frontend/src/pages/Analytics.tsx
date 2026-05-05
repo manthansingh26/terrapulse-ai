@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
 import { apiClient, City } from '@/services/api'
 import { AlertCircle, TrendingUp, Thermometer, Droplets, Wind, Calendar, Filter, BarChart3, Activity, LineChart as LineChartIcon } from 'lucide-react'
+import DataSourceNotice from '@/components/DataSourceNotice'
 
 type TabType = 'charts' | 'trends' | 'comparison'
 
@@ -85,13 +86,15 @@ const Analytics: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      <DataSourceNotice />
+
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-4xl font-bold text-gray-900 flex items-center gap-3">
             <span className="text-3xl">📈</span> Analytics
           </h1>
-          <p className="text-gray-600 mt-2">Detailed environmental analysis and trends</p>
+          <p className="text-gray-600 mt-2">Detailed analysis of sample environmental records and demo trends</p>
         </div>
 
         {/* Date Range Picker */}
@@ -125,7 +128,7 @@ const Analytics: React.FC = () => {
         <div className="card p-5 bg-gradient-to-br from-red-50 to-orange-50 border border-red-100">
           <div className="flex items-center gap-2 text-red-600 mb-2">
             <Wind size={18} />
-            <span className="text-sm font-medium">Highest AQI</span>
+            <span className="text-sm font-medium">Highest demo AQI</span>
           </div>
           <p className="text-3xl font-bold text-gray-900">{summaryStats.highestAQI}</p>
           <p className="text-xs text-gray-500 mt-1">
@@ -135,7 +138,7 @@ const Analytics: React.FC = () => {
         <div className="card p-5 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100">
           <div className="flex items-center gap-2 text-green-600 mb-2">
             <Activity size={18} />
-            <span className="text-sm font-medium">Lowest AQI</span>
+            <span className="text-sm font-medium">Lowest demo AQI</span>
           </div>
           <p className="text-3xl font-bold text-gray-900">{summaryStats.lowestAQI}</p>
           <p className="text-xs text-gray-500 mt-1">
@@ -204,7 +207,7 @@ const Analytics: React.FC = () => {
           {selectedCityData && (
             <div className="flex gap-4">
               <div className="px-6 py-3 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl border border-cyan-100">
-                <p className="text-xs text-cyan-600 font-medium">AQI</p>
+                <p className="text-xs text-cyan-600 font-medium">Demo AQI</p>
                 <p className="text-2xl font-bold text-gray-900">{selectedCityData.current_aqi || 'N/A'}</p>
               </div>
               <div className="px-6 py-3 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border border-orange-100">
@@ -227,7 +230,7 @@ const Analytics: React.FC = () => {
           <div className="card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
               <LineChartIcon className="text-cyan-600" size={20} />
-              AQI & Temperature Trend
+              Demo AQI & Temperature Trend
             </h2>
             <ResponsiveContainer width="100%" height={350}>
               <AreaChart data={lineChartData}>
@@ -254,7 +257,7 @@ const Analytics: React.FC = () => {
                   }}
                 />
                 <Legend />
-                <Area yAxisId="left" type="monotone" dataKey="aqi" stroke="#ef4444" fill="url(#colorAqi)" name="AQI" strokeWidth={3} />
+                <Area yAxisId="left" type="monotone" dataKey="aqi" stroke="#ef4444" fill="url(#colorAqi)" name="Demo AQI" strokeWidth={3} />
                 <Area yAxisId="right" type="monotone" dataKey="temp" stroke="#f59e0b" fill="url(#colorTemp)" name="Temperature (°C)" strokeWidth={3} />
               </AreaChart>
             </ResponsiveContainer>
@@ -263,7 +266,7 @@ const Analytics: React.FC = () => {
           {/* AQI Distribution & Top Cities */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="card p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">AQI Status Distribution</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">Demo AQI Status Distribution</h2>
               <div className="flex items-center justify-center">
                 <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
@@ -304,7 +307,7 @@ const Analytics: React.FC = () => {
             </div>
 
             <div className="card p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">Top 5 Most Polluted Cities</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">Top 5 Highest Demo AQI Cities</h2>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={topCitiesData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />

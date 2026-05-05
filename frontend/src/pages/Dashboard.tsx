@@ -29,6 +29,10 @@ import {
 } from 'lucide-react'
 import { apiClient, City, MLInsights } from '@/services/api'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import DataSourceNotice from '@/components/DataSourceNotice'
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+const wsUrl = API_BASE_URL.replace(/^http/, 'ws').replace(/\/api\/?$/, '/api/ws/cities')
 
 const riskColor = {
   Low: '#10b981',
@@ -59,7 +63,6 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState('')
 
-  const wsUrl = `ws://${window.location.hostname}:8000/api/ws/cities`
   useWebSocket(wsUrl)
 
   const loadDashboard = async (showLoader = false) => {
@@ -74,7 +77,7 @@ const Dashboard: React.FC = () => {
       setMlInsights(insights)
       setLastUpdated(new Date().toLocaleTimeString())
     } catch (err) {
-      setError('Unable to load live model intelligence. Check backend and database connection.')
+      setError('Unable to load demo model intelligence. Check backend and database connection.')
       console.error(err)
     } finally {
       setIsLoading(false)
@@ -170,17 +173,19 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <DataSourceNotice />
+
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-slate-950 text-white shadow-xl">
         <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_0.9fr]">
           <div className="p-6 lg:p-8">
             <div className="flex flex-wrap items-center gap-3 text-sm text-cyan-100">
               <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-400/10 px-3 py-1">
                 <Radio size={14} />
-                Live inference system
+                Demo inference system
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1">
                 <Database size={14} />
-                {mlInsights?.monitored_cities || cities.length} city sensors
+                {mlInsights?.monitored_cities || cities.length} city demo records
               </span>
             </div>
 
@@ -192,7 +197,7 @@ const Dashboard: React.FC = () => {
                 Environmental intelligence command center
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                A machine learning dashboard that converts city-level air quality readings into
+                A machine learning dashboard that converts city-level sample AQI readings into
                 24-hour AQI forecasts, risk scores, model confidence, and operational actions.
               </p>
             </div>
@@ -271,7 +276,7 @@ const Dashboard: React.FC = () => {
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-950">Forecast vs current AQI</h2>
+              <h2 className="text-lg font-bold text-slate-950">Forecast vs sample AQI</h2>
               <p className="text-sm text-slate-500">Top cities ranked by predicted risk score.</p>
             </div>
             <span className="rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-600">
@@ -295,7 +300,7 @@ const Dashboard: React.FC = () => {
                 <XAxis dataKey="city" tick={{ fontSize: 12 }} interval={0} angle={-20} textAnchor="end" height={70} />
                 <YAxis />
                 <Tooltip />
-                <Area type="monotone" dataKey="current" stroke="#0ea5e9" fill="url(#currentAqi)" strokeWidth={3} name="Current AQI" />
+                <Area type="monotone" dataKey="current" stroke="#0ea5e9" fill="url(#currentAqi)" strokeWidth={3} name="Sample AQI" />
                 <Area type="monotone" dataKey="predicted" stroke="#ef4444" fill="url(#predictedAqi)" strokeWidth={3} name="Predicted AQI" />
               </AreaChart>
             </ResponsiveContainer>
@@ -400,8 +405,8 @@ const Dashboard: React.FC = () => {
       <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-slate-950">Live city intelligence</h2>
-            <p className="text-sm text-slate-500">Current sensor readings combined with model outputs.</p>
+            <h2 className="text-lg font-bold text-slate-950">Demo city intelligence</h2>
+            <p className="text-sm text-slate-500">Sample city readings combined with model outputs.</p>
           </div>
           <div className="flex items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
             <CloudSun size={16} />
@@ -414,7 +419,7 @@ const Dashboard: React.FC = () => {
             <thead>
               <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
                 <th className="px-3 py-3">City</th>
-                <th className="px-3 py-3">Current AQI</th>
+                <th className="px-3 py-3">Sample AQI</th>
                 <th className="px-3 py-3">Predicted AQI</th>
                 <th className="px-3 py-3">Risk</th>
                 <th className="px-3 py-3">Confidence</th>
