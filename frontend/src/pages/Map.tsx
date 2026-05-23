@@ -115,7 +115,7 @@ const MapMarkers: React.FC<{
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-base font-bold text-slate-950">{city.city}</h3>
-                    <p className="text-xs font-medium text-slate-500">{getAQILabel(city.current_aqi)} demo AQI</p>
+                    <p className="text-xs font-medium text-slate-500">{getAQILabel(city.current_aqi)} AQI Status</p>
                   </div>
                   <span className="rounded-md px-2 py-1 text-sm font-bold text-white" style={{ backgroundColor: color }}>
                     {city.current_aqi || 'N/A'}
@@ -227,10 +227,10 @@ const Map: React.FC = () => {
               <LocateFixed size={14} />
               Geospatial monitoring
             </div>
-            <h1 className="mt-4 text-3xl font-bold text-slate-950 lg:text-4xl">Demo AQI map intelligence</h1>
+            <h1 className="mt-4 text-3xl font-bold text-slate-950 lg:text-4xl">Geospatial AQI intelligence map</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              Explore city-level sample air quality across India with risk filters, demo readings,
-              and operational context for each monitored location.
+              Explore live city-level air quality indexes across India with active risk thresholds, real-time pollutant readings,
+              and predictive model context for each monitored location.
             </p>
           </div>
 

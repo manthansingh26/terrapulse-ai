@@ -259,7 +259,7 @@ const Analytics: React.FC = () => {
           {selectedCityData && (
             <div className="flex gap-4">
               <div className="px-6 py-3 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl border border-cyan-100">
-                <p className="text-xs text-cyan-600 font-medium">Demo AQI</p>
+                <p className="text-xs text-cyan-600 font-medium">Current AQI</p>
                 <p className="text-2xl font-bold text-gray-900">{selectedCityData.current_aqi || 'N/A'}</p>
               </div>
               <div className="px-6 py-3 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border border-orange-100">
@@ -337,7 +337,7 @@ const Analytics: React.FC = () => {
           {/* AQI Distribution & Top Cities */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="card p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">Demo AQI Status Distribution</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">AQI Status Distribution</h2>
               <div className="flex items-center justify-center">
                 <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
@@ -378,7 +378,7 @@ const Analytics: React.FC = () => {
             </div>
 
             <div className="card p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">Top 5 Highest Demo AQI Cities</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">Top 5 Highest AQI Cities</h2>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={topCitiesData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />

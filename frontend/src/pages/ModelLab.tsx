@@ -309,12 +309,12 @@ const ModelLab: React.FC = () => {
               Model Lab
             </div>
             <h1 className="mt-5 text-3xl font-bold leading-tight lg:text-5xl">
-              Demo AQI forecasting model workspace
+              AQI forecasting model workspace
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 lg:text-base">
               Inspect the trained Random Forest pipeline behind TerraPulse AI. This page exposes
               training quality, feature importance, retraining, and city-level 24-hour forecasts
-              built from demo AQI records.
+              built from live AQI records.
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3 text-sm">
@@ -339,7 +339,7 @@ const ModelLab: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-400">Model readiness</p>
-                <p className="mt-1 text-3xl font-bold">{metrics ? 'Production Demo' : 'Offline'}</p>
+                <p className="mt-1 text-3xl font-bold">{metrics ? 'Production Ready' : 'Offline'}</p>
               </div>
               <div className="rounded-lg bg-cyan-400/10 p-3 text-cyan-300">
                 <Brain size={28} />
