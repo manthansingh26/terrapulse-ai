@@ -260,6 +260,21 @@ class APIClient {
         return Promise.reject(error)
       }
     )
+
+    // Retry logic for Render cold-start delays (retries on network error or 502/503/504)
+    this.client.interceptors.response.use(
+      undefined,
+      async (error) => {
+        const config = error.config
+        if (!config || config._retryCount >= 2) return Promise.reject(error)
+        const shouldRetry =
+          !error.response || [502, 503, 504].includes(error.response?.status)
+        if (!shouldRetry) return Promise.reject(error)
+        config._retryCount = (config._retryCount || 0) + 1
+        await new Promise((resolve) => setTimeout(resolve, 3000))
+        return this.client(config)
+      }
+    )
   }
 
   // Auth endpoints

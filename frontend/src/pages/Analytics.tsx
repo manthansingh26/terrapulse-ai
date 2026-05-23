@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
-import { apiClient, City } from '@/services/api'
-import { AlertCircle, TrendingUp, Thermometer, Droplets, Wind, Calendar, Filter, BarChart3, Activity, LineChart as LineChartIcon } from 'lucide-react'
+import { apiClient, City, EnvironmentalData } from '@/services/api'
+import { AlertCircle, TrendingUp, Thermometer, Droplets, Wind, Calendar, Filter, BarChart3, Activity, LineChart as LineChartIcon, Loader2 } from 'lucide-react'
 import DataSourceNotice from '@/components/DataSourceNotice'
 
 type TabType = 'charts' | 'trends' | 'comparison'
@@ -12,7 +12,20 @@ const Analytics: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabType>('charts')
-  const [dateRange, setDateRange] = useState({ from: '', to: '' })
+  const [historicalData, setHistoricalData] = useState<EnvironmentalData[]>([])
+  const [historicalLoading, setHistoricalLoading] = useState(false)
+  const [historicalError, setHistoricalError] = useState<string | null>(null)
+
+  // Default date range: last 7 days
+  const [dateRange, setDateRange] = useState(() => {
+    const to = new Date()
+    const from = new Date()
+    from.setDate(from.getDate() - 7)
+    return {
+      from: from.toISOString().split('T')[0],
+      to: to.toISOString().split('T')[0],
+    }
+  })
 
   useEffect(() => {
     const fetchCities = async () => {
@@ -36,15 +49,54 @@ const Analytics: React.FC = () => {
 
   const selectedCityData = cities.find((c) => c.city === selectedCity)
 
-  const lineChartData = [
-    { time: '06:00', aqi: 85, temp: 24, humidity: 65 },
-    { time: '09:00', aqi: 110, temp: 28, humidity: 58 },
-    { time: '12:00', aqi: 145, temp: 32, humidity: 45 },
-    { time: '15:00', aqi: 168, temp: 35, humidity: 38 },
-    { time: '18:00', aqi: 142, temp: 30, humidity: 52 },
-    { time: '21:00', aqi: 95, temp: 26, humidity: 62 },
-    { time: '00:00', aqi: 78, temp: 23, humidity: 70 },
-  ]
+  // Calculate days between from and to dates
+  const dayCount = useMemo(() => {
+    if (!dateRange.from) return 7
+    const fromDate = new Date(dateRange.from)
+    const toDate = dateRange.to ? new Date(dateRange.to) : new Date()
+    const diffMs = toDate.getTime() - fromDate.getTime()
+    const days = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
+    return days
+  }, [dateRange.from, dateRange.to])
+
+  // Fetch historical data when selectedCity or date range changes
+  useEffect(() => {
+    if (!selectedCity) return
+
+    const fetchHistorical = async () => {
+      try {
+        setHistoricalLoading(true)
+        setHistoricalError(null)
+        const data = await apiClient.getHistoricalData(selectedCity, dayCount)
+        setHistoricalData(data)
+      } catch (err) {
+        console.error('Failed to fetch historical data:', err)
+        setHistoricalError('Failed to load historical data for this city')
+        setHistoricalData([])
+      } finally {
+        setHistoricalLoading(false)
+      }
+    }
+
+    fetchHistorical()
+  }, [selectedCity, dayCount])
+
+  // Transform API data into chart format
+  const lineChartData = useMemo(() => {
+    return historicalData.map((d) => {
+      const date = new Date(d.timestamp)
+      // Use MM/DD HH:mm for multi-day ranges, HH:mm for single day
+      const time = dayCount > 1
+        ? `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+        : `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+      return {
+        time,
+        aqi: d.aqi ?? 0,
+        temp: d.temperature ?? 0,
+        humidity: d.humidity ?? 0,
+      }
+    })
+  }, [historicalData, dayCount])
 
   const pieChartData = [
     { name: 'Good (0-50)', value: cities.filter((c) => c.current_aqi && c.current_aqi <= 50).length, color: '#10b981' },
@@ -230,37 +282,56 @@ const Analytics: React.FC = () => {
           <div className="card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
               <LineChartIcon className="text-cyan-600" size={20} />
-              Demo AQI & Temperature Trend
+              AQI & Temperature Trend
+              {historicalLoading && <Loader2 className="animate-spin text-cyan-500" size={18} />}
             </h2>
-            <ResponsiveContainer width="100%" height={350}>
-              <AreaChart data={lineChartData}>
-                <defs>
-                  <linearGradient id="colorAqi" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="time" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'white',
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                    border: 'none',
-                  }}
-                />
-                <Legend />
-                <Area yAxisId="left" type="monotone" dataKey="aqi" stroke="#ef4444" fill="url(#colorAqi)" name="Demo AQI" strokeWidth={3} />
-                <Area yAxisId="right" type="monotone" dataKey="temp" stroke="#f59e0b" fill="url(#colorTemp)" name="Temperature (°C)" strokeWidth={3} />
-              </AreaChart>
-            </ResponsiveContainer>
+
+            {historicalError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 mb-4">
+                <AlertCircle className="text-red-600" size={18} />
+                <p className="text-red-700 text-sm">{historicalError}</p>
+              </div>
+            )}
+
+            {!historicalLoading && !historicalError && lineChartData.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-[350px] text-gray-400">
+                <Activity size={48} className="mb-3 opacity-50" />
+                <p className="text-lg font-medium">No historical data available for this city</p>
+                <p className="text-sm mt-1">Try selecting a different city or date range</p>
+              </div>
+            )}
+
+            {lineChartData.length > 0 && (
+              <ResponsiveContainer width="100%" height={350}>
+                <AreaChart data={lineChartData}>
+                  <defs>
+                    <linearGradient id="colorAqi" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="time" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                      border: 'none',
+                    }}
+                  />
+                  <Legend />
+                  <Area yAxisId="left" type="monotone" dataKey="aqi" stroke="#ef4444" fill="url(#colorAqi)" name="AQI" strokeWidth={3} />
+                  <Area yAxisId="right" type="monotone" dataKey="temp" stroke="#f59e0b" fill="url(#colorTemp)" name="Temperature (°C)" strokeWidth={3} />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
           {/* AQI Distribution & Top Cities */}

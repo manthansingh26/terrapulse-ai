@@ -1,16 +1,28 @@
 import { useEffect, useRef, useCallback } from 'react'
 
+const MAX_RECONNECT_ATTEMPTS = 3
+
 export const useWebSocket = (url: string) => {
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
+  const reconnectCountRef = useRef(0)
 
   const connect = useCallback(() => {
     try {
+      if (reconnectCountRef.current >= MAX_RECONNECT_ATTEMPTS) {
+        console.warn(
+          `⚠️ WebSocket: Stopped reconnecting after ${MAX_RECONNECT_ATTEMPTS} attempts. ` +
+          'Real-time updates unavailable — data will refresh via polling.'
+        )
+        return
+      }
+
       console.log(`🔌 Connecting to WebSocket: ${url}`)
       wsRef.current = new WebSocket(url)
 
       wsRef.current.onopen = () => {
         console.log('✅ WebSocket connected')
+        reconnectCountRef.current = 0
         // Request initial data
         wsRef.current?.send('get_cities')
         console.log('📨 Sent get_cities request')
@@ -25,14 +37,24 @@ export const useWebSocket = (url: string) => {
         }
       }
 
-      wsRef.current.onerror = (error) => {
-        console.error('❌ WebSocket error:', error)
+      wsRef.current.onerror = () => {
+        // Error is logged on close — avoid duplicate noise
       }
 
       wsRef.current.onclose = () => {
-        console.log('❌ WebSocket disconnected')
-        // Reconnect after 3 seconds
-        reconnectTimeoutRef.current = setTimeout(connect, 3000)
+        reconnectCountRef.current += 1
+        if (reconnectCountRef.current < MAX_RECONNECT_ATTEMPTS) {
+          const delay = 3000 * Math.pow(2, reconnectCountRef.current - 1) // 3s, 6s, 12s
+          console.log(
+            `🔄 WebSocket disconnected. Reconnecting in ${delay / 1000}s ` +
+            `(attempt ${reconnectCountRef.current}/${MAX_RECONNECT_ATTEMPTS})...`
+          )
+          reconnectTimeoutRef.current = setTimeout(connect, delay)
+        } else {
+          console.warn(
+            '⚠️ WebSocket: Max reconnect attempts reached. Falling back to polling.'
+          )
+        }
       }
     } catch (error) {
       console.error('Failed to connect WebSocket:', error)

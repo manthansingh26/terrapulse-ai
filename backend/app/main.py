@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.core.config import get_settings
 from app.db.database import engine, Base, SessionLocal, test_connection_async, test_connection
@@ -51,12 +51,18 @@ def create_tables():
 
 # Seed local demo data
 def seed_local_data():
-    """Seed a demo user and sample environmental readings for local development."""
+    """Seed a demo user and sample environmental readings for local development.
+
+    Each EnvironmentalData record receives a fresh timestamp so the dashboard
+    never shows stale data.  If the newest existing record is older than
+    12 hours the old seed data is deleted and re-inserted with current times.
+    """
     db = SessionLocal()
     try:
         from app.api.endpoints.cities import CITY_COORDINATES
         from app.core.security import AuthService
 
+        # --- Demo user ---
         if not db.query(User).filter(User.username == "demo").first():
             db.add(
                 User(
@@ -69,7 +75,23 @@ def seed_local_data():
                 )
             )
 
-        if db.query(EnvironmentalData).count() == 0:
+        # --- Environmental seed data ---
+        needs_seed = False
+        existing_count = db.query(EnvironmentalData).count()
+
+        if existing_count == 0:
+            needs_seed = True
+        else:
+            # Check staleness: if the newest record is older than 12 hours, re-seed
+            from sqlalchemy import func
+            newest_ts = db.query(func.max(EnvironmentalData.timestamp)).scalar()
+            if newest_ts is not None and newest_ts < datetime.utcnow() - timedelta(hours=12):
+                logger.info("Seed data is stale (>12 h old) — deleting and re-seeding")
+                db.query(EnvironmentalData).delete()
+                needs_seed = True
+
+        if needs_seed:
+            now = datetime.utcnow()
             for index, city in enumerate(CITY_COORDINATES):
                 db.add(
                     EnvironmentalData(
@@ -80,6 +102,7 @@ def seed_local_data():
                         humidity=42 + ((index * 5) % 45),
                         wind_speed=4 + ((index * 0.8) % 7),
                         rainfall=0,
+                        timestamp=now - timedelta(minutes=index),
                     )
                 )
 

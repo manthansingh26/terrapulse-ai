@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Outlet, Link, useNavigate } from 'react-router-dom'
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { BarChart3, FlaskConical, LineChart, LogOut, Map, Menu, UserCircle, X } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -7,6 +7,7 @@ const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const handleLogout = () => {
     logout()
@@ -20,6 +21,9 @@ const Layout: React.FC = () => {
     { path: '/model-lab', label: 'Model Lab', icon: FlaskConical },
     { path: '/profile', label: 'Profile', icon: UserCircle },
   ]
+
+  const isActive = (path: string) =>
+    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
 
   return (
     <div className="flex h-screen bg-slate-50">
@@ -46,14 +50,19 @@ const Layout: React.FC = () => {
           <nav className="flex-1 overflow-y-auto py-6">
             {navItems.map((item) => {
               const Icon = item.icon
+              const active = isActive(item.path)
               return (
                 <Link
                   key={item.path}
                   to={item.path}
-                  className="flex items-center gap-3 px-6 py-3 text-sm font-medium text-slate-200 transition-colors hover:bg-white/10"
+                  className={`flex items-center gap-3 px-6 py-3 text-sm font-medium transition-colors ${
+                    active
+                      ? 'bg-white/[0.12] border-r-[3px] border-cyan-400 text-white'
+                      : 'text-slate-200 hover:bg-white/10'
+                  }`}
                   onClick={() => setSidebarOpen(false)}
                 >
-                  <Icon size={18} className="text-cyan-300" />
+                  <Icon size={18} className={active ? 'text-cyan-400' : 'text-cyan-300'} />
                   <span>{item.label}</span>
                 </Link>
               )
