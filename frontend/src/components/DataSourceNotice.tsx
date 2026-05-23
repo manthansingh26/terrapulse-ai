@@ -1,4 +1,4 @@
-import { Database, Wifi } from 'lucide-react'
+
 
 const DataSourceNotice = () => (
   <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 backdrop-blur-sm p-4 text-sm text-emerald-950 shadow-sm transition-all hover:shadow-md">
