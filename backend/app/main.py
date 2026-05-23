@@ -205,10 +205,16 @@ async def startup_event():
     logger.info(f"📡 API URL: /api")
     logger.info(f"📚 Swagger Docs: /api/docs")
 
+    # Start live AQI data scheduler
+    from app.services.scheduler import start_scheduler
+    start_scheduler()
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Run on application shutdown"""
+    from app.services.scheduler import stop_scheduler
+    stop_scheduler()
     logger.info(f"🛑 {settings.APP_NAME} shutting down...")
 
 
