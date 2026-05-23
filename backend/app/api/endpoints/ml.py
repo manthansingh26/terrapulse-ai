@@ -10,6 +10,7 @@ from app.ml.aqi_model import (
     load_evaluation_samples,
     load_feature_importance,
     load_metrics,
+    load_model_comparison,
     load_run_history,
     load_run_metrics,
     predict_record,
@@ -24,9 +25,22 @@ from app.schemas.schemas import (
     MLDataQualityResponse,
     MLRunSummary,
     MLTrainingResponse,
+    ModelComparisonItem,
 )
 
 router = APIRouter(prefix="/ml", tags=["Machine Learning"])
+
+
+@router.get("/model-comparison", response_model=list[ModelComparisonItem])
+async def get_model_comparison():
+    """Return the latest model comparison report (RF vs GBR vs Linear)."""
+    try:
+        return load_model_comparison()
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
 
 
 def latest_city_record(db: Session, city: str) -> EnvironmentalData | None:

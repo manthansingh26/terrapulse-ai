@@ -281,6 +281,17 @@ class EvaluationSampleItem(BaseModel):
     error: int
 
 
+class ModelComparisonItem(BaseModel):
+    """Comparison metrics for a single candidate model."""
+    model_name: str
+    test_mae: float
+    test_rmse: float
+    test_r2: float
+    cv_mean_mae: float
+    cv_std_mae: float
+    is_best: bool
+
+
 # ==================== Health & Status Schemas ====================
 
 class HealthResponse(BaseModel):

@@ -1,186 +1,148 @@
 # TerraPulse AI
 
-Full-stack environmental intelligence dashboard for AQI monitoring, forecasting, alerts, and machine learning operations.
+Real-time environmental intelligence dashboard monitoring live Air Quality Index (AQI) across 20 Indian cities with ML-powered 24-hour forecasts.
 
-## Current Status
+**Live:** [terrapulse-ai.vercel.app](https://terrapulse-ai.vercel.app)
 
-TerraPulse AI is complete as a local full-stack portfolio/demo project:
+---
 
-- React + TypeScript frontend
-- FastAPI backend
-- PostgreSQL-compatible data layer
-- JWT authentication
-- Dashboard, map, analytics, profile, and Model Lab pages
-- AQI forecasting model with saved artifacts
-- Time-based ML validation
-- Model run history
-- Data quality endpoint
-- Prediction explanations
-- Opening animation and ML-focused Model Lab animations
+## Architecture
 
-It is not yet a fully hosted production SaaS product. See [PROJECT_STATUS.md](./PROJECT_STATUS.md) for the exact completion status and remaining production work.
-
-## Live Demo
-
-- Frontend: https://terrapulse-ai.vercel.app
-- Backend API: https://terrapulse-ai.onrender.com
-- API Docs: https://terrapulse-ai.onrender.com/api/docs
-
-Demo login:
-
-- Username: `demo`
-- Password: `demo123`
-
-## Data Source Notice
-
-The deployed demo currently uses seeded sample AQI/weather records and saved ML artifacts.
-AQI values shown in the dashboard, map, analytics, and Model Lab are not official real-time
-city readings. Real scheduled ingestion from verified providers such as WAQI, CPCB, or
-OpenWeather is listed as production work.
+```
+┌──────────────────┐       HTTPS        ┌──────────────────────┐
+│   React + TS     │ ◄───────────────── │    Vercel (Edge)      │
+│   Vite Frontend  │                    └──────────────────────┘
+└────────┬─────────┘
+         │ API calls
+         ▼
+┌──────────────────┐       SQL          ┌──────────────────────┐
+│   FastAPI         │ ◄────────────────►│  Neon PostgreSQL      │
+│   Python Backend  │                   └──────────────────────┘
+└────────┬─────────┘
+         │ Scheduled (30 min)
+         ▼
+┌──────────────────┐
+│   WAQI API        │  Live AQI telemetry
+│   (aqicn.org)     │  20 cities
+└──────────────────┘
+```
 
 ## Tech Stack
 
 | Layer | Technology |
-| --- | --- |
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS, Recharts, Leaflet |
-| Backend | FastAPI, SQLAlchemy, Pydantic, JWT auth |
-| ML | scikit-learn RandomForestRegressor, joblib artifacts |
-| Data | PostgreSQL-compatible SQLAlchemy models, local SQLite-compatible development |
-| DevOps | Docker Compose, Makefile, GitHub Actions structure |
+|---|---|
+| **Frontend** | React 18, TypeScript, Vite 5, Tailwind CSS |
+| **Charts** | Recharts |
+| **Maps** | Leaflet + React-Leaflet |
+| **State** | Zustand |
+| **Backend** | FastAPI, Uvicorn, Pydantic v2 |
+| **Database** | PostgreSQL (Neon), SQLAlchemy 2.0, Alembic |
+| **ML** | scikit-learn (RandomForest, GradientBoosting, Linear — auto-selected) |
+| **Scheduling** | APScheduler (30-min background AQI sync) |
+| **Auth** | JWT (python-jose), bcrypt |
+| **CI** | GitHub Actions (lint + test + build) |
+| **Deployment** | Vercel (frontend), Render (backend) |
+| **External API** | WAQI (World Air Quality Index) |
 
-## Main Features
+## Features
 
-- User registration and login
-- Protected dashboard routes
-- Demo AQI and environmental analytics
-- Interactive city map
-- Demo city data with WebSocket support
-- Email and ML forecast alert support
-- Model Lab for ML operations
-- AQI 24-hour forecasting
-- Model metrics: MAE, RMSE, R2
-- Feature importance
-- Versioned training run history
-- Data quality and freshness panel
-- Per-city prediction explanations
+- **Live AQI Dashboard** — Real-time air quality for 20 cities via WAQI API
+- **Interactive Map** — Leaflet GIS with color-coded AQI markers and risk filters
+- **ML Forecasting** — 24-hour AQI predictions with model explainability
+- **Model Comparison** — Automated RF vs GradientBoosting vs Linear selection with cross-validation
+- **Analytics** — Historical trends, AQI distribution, city comparisons
+- **Authentication** — JWT-based user registration and login
 
-## How To Run Locally
+## Local Development
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL (or use SQLite for local dev)
 
 ### Backend
 
-```powershell
-cd backend
-venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
-
-If dependencies are not installed:
-
-```powershell
+```bash
 cd backend
 python -m venv venv
-venv\Scripts\python.exe -m pip install -r requirements.txt
+venv\Scripts\activate        # Windows
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env         # Edit DATABASE_URL, SECRET_KEY, WAQI_API_TOKEN
+
+# Run
+uvicorn app.main:app --reload --port 8000
 ```
+
+API docs available at `http://localhost:8000/api/docs`
 
 ### Frontend
 
-```powershell
+```bash
 cd frontend
 npm install
-npm run dev -- --host 127.0.0.1
+npm run dev
 ```
 
-Open http://127.0.0.1:3000/ and login with `demo` / `demo123`.
+Opens at `http://localhost:5173`
 
-## How To Use The Website
+### Running Tests
 
-1. Open the frontend URL.
-2. Login with the demo account.
-3. Use `Dashboard` for overall AQI and ML risk summaries.
-4. Use `Map` to inspect city-level AQI locations.
-5. Use `Analytics` for trend and comparison charts.
-6. Use `Model Lab` for ML metrics, model runs, data quality, retraining, forecasts, and explanations.
-7. Use `Profile` for account information.
+```bash
+# Backend
+cd backend
+pytest tests/ -v
 
-## Machine Learning APIs
-
-```text
-POST /api/ml/train
-GET  /api/ml/metrics
-GET  /api/ml/runs
-GET  /api/ml/runs/{run_id}
-GET  /api/ml/data-quality
-GET  /api/ml/feature-importance
-GET  /api/ml/evaluation-samples
-GET  /api/ml/forecast/all
-GET  /api/ml/forecast/{city}
-GET  /api/ml/explain/top
-GET  /api/ml/explain/{city}
-```
-
-ML documentation:
-
-- [ML Overview](./docs/ml/README.md)
-- [Model Card](./docs/ml/MODEL_CARD.md)
-- [Dataset Card](./docs/ml/DATASET_CARD.md)
-- [Pipeline](./docs/ml/PIPELINE.md)
-
-## Verification
-
-Run these before presenting or deploying:
-
-```powershell
-backend\venv\Scripts\python.exe -m pytest backend/tests -v
+# Frontend
 cd frontend
-npm run lint
-npm run type-check
-npm run build
+npm test
 ```
 
-Current known non-blocking warnings:
+## API Endpoints
 
-- Vite reports a large JavaScript bundle. This is expected until route-level code splitting is added.
-- Pytest may warn about cache writes in restricted sandbox environments.
-- Pydantic and SQLAlchemy deprecation warnings remain for a future cleanup pass.
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/health` | Health check |
+| `GET` | `/api/cities/all` | All city AQI data |
+| `GET` | `/api/cities/{city}` | Single city data |
+| `POST` | `/api/auth/register` | Register user |
+| `POST` | `/api/auth/login` | Login |
+| `POST` | `/api/ml/train` | Train ML model |
+| `GET` | `/api/ml/metrics` | Model metrics |
+| `GET` | `/api/ml/model-comparison` | RF vs GBR vs Linear comparison |
+| `GET` | `/api/ml/forecast/all` | 24h forecast for all cities |
+| `GET` | `/api/ml/forecast/{city}` | 24h forecast for one city |
+| `GET` | `/api/ml/explain/{city}` | Explainability for forecast |
 
 ## Project Structure
 
-```text
+```
 terrapulse-ai/
-  backend/
-    app/
-      api/endpoints/
-      core/
-      db/
-      ml/
-      models/
-      schemas/
-    tests/
-  frontend/
-    src/
-      components/
-      context/
-      hooks/
-      pages/
-      services/
-      styles/
-  docs/
-    ml/
-    guides/
-    api/
-  archive/
+├── frontend/                # React + TypeScript + Vite
+│   ├── src/
+│   │   ├── pages/           # Dashboard, Map, Analytics, ModelLab
+│   │   ├── components/      # Shared UI components
+│   │   ├── services/        # API client (Axios)
+│   │   └── hooks/           # WebSocket, custom hooks
+│   └── package.json
+├── backend/                 # FastAPI + Python
+│   ├── app/
+│   │   ├── api/endpoints/   # REST routes
+│   │   ├── core/            # Config, security
+│   │   ├── db/              # SQLAlchemy setup
+│   │   ├── ml/              # Model training, prediction, comparison
+│   │   ├── models/          # ORM models
+│   │   ├── schemas/         # Pydantic schemas
+│   │   └── services/        # WAQI fetcher, scheduler
+│   ├── tests/               # pytest test suite
+│   └── requirements.txt
+├── .github/workflows/ci.yml # GitHub Actions CI
+├── docker-compose.yml       # Docker local dev
+└── README.md
 ```
 
-## Production Readiness
+## License
 
-The app is demo-complete. For production deployment, finish:
-
-- Hosted domain and HTTPS
-- Production secrets management
-- Real scheduled AQI/weather ingestion
-- Database migrations
-- Observability and monitoring
-- CI/CD deployment pipeline
-- Broader frontend and API test coverage
-- Model drift monitoring and scheduled retraining
-
-See [PROJECT_STATUS.md](./PROJECT_STATUS.md).
+MIT

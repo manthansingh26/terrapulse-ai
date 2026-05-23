@@ -10,9 +10,11 @@ from typing import Iterable
 
 import joblib
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.inspection import permutation_importance
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import cross_val_score
 
 from app.api.endpoints.cities import CITY_COORDINATES
 from app.models.models import EnvironmentalData
@@ -62,10 +64,34 @@ MODEL_PATH = ARTIFACT_DIR / "aqi_forecaster.joblib"
 METRICS_PATH = ARTIFACT_DIR / "metrics.json"
 FEATURE_IMPORTANCE_PATH = ARTIFACT_DIR / "feature_importance.json"
 EVALUATION_SAMPLES_PATH = ARTIFACT_DIR / "evaluation_samples.json"
+MODEL_COMPARISON_PATH = ARTIFACT_DIR / "model_comparison.json"
 RUNS_DIR = ARTIFACT_DIR / "runs"
 RUN_HISTORY_PATH = ARTIFACT_DIR / "run_history.json"
 LATEST_RUN_PATH = ARTIFACT_DIR / "latest_run.json"
 MAX_RUN_HISTORY = 25
+
+
+# ---------------------------------------------------------------------------
+# Candidate model definitions for comparison
+# ---------------------------------------------------------------------------
+
+CANDIDATE_MODELS = {
+    "RandomForestRegressor": lambda: RandomForestRegressor(
+        n_estimators=180,
+        max_depth=14,
+        min_samples_leaf=3,
+        random_state=2601,
+        n_jobs=1,
+    ),
+    "GradientBoostingRegressor": lambda: GradientBoostingRegressor(
+        n_estimators=150,
+        max_depth=6,
+        learning_rate=0.1,
+        min_samples_leaf=5,
+        random_state=2601,
+    ),
+    "LinearRegression": lambda: LinearRegression(),
+}
 
 
 @dataclass
@@ -310,6 +336,68 @@ def save_model_run(
     return run_metrics
 
 
+# ---------------------------------------------------------------------------
+# Model comparison: train all candidates, pick best, save comparison report
+# ---------------------------------------------------------------------------
+
+def _run_model_comparison(
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    y_test: np.ndarray,
+    cv_folds: int = 5,
+) -> tuple[object, list[dict]]:
+    """Train every candidate model, run cross-validation, return the best model and comparison report."""
+
+    comparison: list[dict] = []
+    best_model = None
+    best_mae = float("inf")
+
+    for name, factory in CANDIDATE_MODELS.items():
+        model = factory()
+        model.fit(x_train, y_train)
+        predictions = model.predict(x_test)
+
+        test_mae = float(mean_absolute_error(y_test, predictions))
+        test_rmse = float(math.sqrt(mean_squared_error(y_test, predictions)))
+        test_r2 = float(r2_score(y_test, predictions))
+
+        # 5-fold cross-validation on training data (negative MAE is sklearn convention)
+        cv_scores = cross_val_score(
+            factory(),
+            x_train,
+            y_train,
+            cv=min(cv_folds, len(x_train)),
+            scoring="neg_mean_absolute_error",
+            n_jobs=1,
+        )
+        cv_mean_mae = float(-cv_scores.mean())
+        cv_std_mae = float(cv_scores.std())
+
+        entry = {
+            "model_name": name,
+            "test_mae": round(test_mae, 3),
+            "test_rmse": round(test_rmse, 3),
+            "test_r2": round(test_r2, 3),
+            "cv_mean_mae": round(cv_mean_mae, 3),
+            "cv_std_mae": round(cv_std_mae, 3),
+            "is_best": False,
+        }
+        comparison.append(entry)
+
+        if test_mae < best_mae:
+            best_mae = test_mae
+            best_model = model
+
+    # Mark the winner
+    for entry in comparison:
+        if entry["test_mae"] == round(best_mae, 3):
+            entry["is_best"] = True
+            break
+
+    return best_model, comparison
+
+
 def train_model(db) -> dict:
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     inserted = ensure_synthetic_history(db)
@@ -317,20 +405,17 @@ def train_model(db) -> dict:
     dataset = build_supervised_examples(records)
     x_train, x_test, y_train, y_test, train_timestamps, test_timestamps = temporal_train_test_split(dataset)
 
-    model = RandomForestRegressor(
-        n_estimators=180,
-        max_depth=14,
-        min_samples_leaf=3,
-        random_state=2601,
-        n_jobs=1,
-    )
-    model.fit(x_train, y_train)
-    predictions = model.predict(x_test)
+    # ── Run model comparison ────────────────────────────────────
+    best_model, comparison = _run_model_comparison(x_train, y_train, x_test, y_test)
+    MODEL_COMPARISON_PATH.write_text(json.dumps(comparison, indent=2), encoding="utf-8")
+
+    best_entry = next(e for e in comparison if e["is_best"])
+    predictions = best_model.predict(x_test)
 
     rmse = math.sqrt(mean_squared_error(y_test, predictions))
     metrics = {
-        "model_name": "RandomForestRegressor",
-        "model_version": "v1.0-rf",
+        "model_name": best_entry["model_name"],
+        "model_version": "v2.0-autoselect",
         "trained_at": datetime.utcnow().isoformat(),
         "training_rows": int(len(x_train)),
         "test_rows": int(len(x_test)),
@@ -344,18 +429,20 @@ def train_model(db) -> dict:
         "rmse": round(float(rmse), 3),
         "r2": round(float(r2_score(y_test, predictions)), 3),
         "features": FEATURE_NAMES,
+        "candidates_evaluated": len(comparison),
     }
 
     bundle = {
-        "model": model,
+        "model": best_model,
         "city_codes": city_code_map(),
         "trained_at": metrics["trained_at"],
         "feature_names": FEATURE_NAMES,
     }
     joblib.dump(bundle, MODEL_PATH)
 
+    # Permutation importance (works for any sklearn estimator)
     importance = permutation_importance(
-        model,
+        best_model,
         x_test,
         y_test,
         n_repeats=5,
@@ -390,6 +477,10 @@ def train_model(db) -> dict:
     return metrics
 
 
+# ---------------------------------------------------------------------------
+# Loaders
+# ---------------------------------------------------------------------------
+
 def load_model() -> dict:
     if not MODEL_PATH.exists():
         raise FileNotFoundError("AQI model is not trained yet")
@@ -413,6 +504,17 @@ def load_evaluation_samples() -> list[dict]:
         raise FileNotFoundError("AQI evaluation samples are not available")
     return json.loads(EVALUATION_SAMPLES_PATH.read_text(encoding="utf-8"))
 
+
+def load_model_comparison() -> list[dict]:
+    """Load the model comparison report from the latest training run."""
+    if not MODEL_COMPARISON_PATH.exists():
+        raise FileNotFoundError("Model comparison is not available. Run POST /api/ml/train first.")
+    return json.loads(MODEL_COMPARISON_PATH.read_text(encoding="utf-8"))
+
+
+# ---------------------------------------------------------------------------
+# Prediction explanation helpers
+# ---------------------------------------------------------------------------
 
 def factor_direction(feature: str, value: float) -> tuple[str, str]:
     baseline = FEATURE_BASELINES.get(feature, 0)

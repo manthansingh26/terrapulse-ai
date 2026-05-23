@@ -73,7 +73,7 @@ async def get_all_cities(db: Session = Depends(get_db)):
                 ).order_by(EnvironmentalData.timestamp.desc()).first()
 
                 if latest:
-                    status, color = get_aqi_status_and_color(latest.aqi)
+                    aqi_status_str, color = get_aqi_status_and_color(latest.aqi)
                     
                     # Build city data with proper type conversion
                     city_response = {
@@ -83,7 +83,7 @@ async def get_all_cities(db: Session = Depends(get_db)):
                         "current_aqi": int(latest.aqi) if latest.aqi else None,
                         "current_temperature": round(float(latest.temperature), 2) if latest.temperature else None,
                         "current_humidity": round(float(latest.humidity), 2) if latest.humidity else None,
-                        "aqi_status": str(status),
+                        "aqi_status": str(aqi_status_str),
                         "aqi_color": str(color),
                         "last_updated": latest.timestamp if latest.timestamp else None
                     }
@@ -154,7 +154,7 @@ async def get_city_data(
     ).order_by(EnvironmentalData.timestamp.desc()).first()
 
     if latest:
-        status, color = get_aqi_status_and_color(latest.aqi)
+        aqi_status_str, color = get_aqi_status_and_color(latest.aqi)
         return CityDataResponse(
             city=city,
             latitude=coords["lat"],
@@ -162,7 +162,7 @@ async def get_city_data(
             current_aqi=int(latest.aqi) if latest.aqi else None,
             current_temperature=round(latest.temperature, 2) if latest.temperature else None,
             current_humidity=round(latest.humidity, 2) if latest.humidity else None,
-            aqi_status=status,
+            aqi_status=aqi_status_str,
             aqi_color=color,
             last_updated=latest.timestamp
         )
