@@ -179,6 +179,10 @@ interface AQIForecast {
   risk_level: string
   confidence: number
   generated_at: string
+  data_sufficiency?: {
+    is_sufficient: boolean
+    warning?: string
+  }
 }
 
 interface PredictionExplanationFactor {

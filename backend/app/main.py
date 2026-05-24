@@ -1,5 +1,6 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -47,6 +48,31 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+
+# Cache control middleware for public endpoints
+class CacheControlMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        path = request.url.path
+        
+        # Cache city data for 5 minutes
+        if path.startswith("/api/cities"):
+            response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=60"
+        # Cache ML forecasts for 30 minutes
+        elif path.startswith("/api/ml/forecast"):
+            response.headers["Cache-Control"] = "public, max-age=1800"
+        # No caching for auth endpoints
+        elif path.startswith("/api/auth"):
+            response.headers["Cache-Control"] = "no-store"
+        # No caching for health checks
+        elif path.startswith("/api/health"):
+            response.headers["Cache-Control"] = "no-store"
+        
+        return response
+
+
+app.add_middleware(CacheControlMiddleware)
 
 
 # Create database tables
@@ -150,14 +176,38 @@ async def root():
 
 @app.get("/api/health", response_model=HealthResponse, tags=["Health"])
 async def health_check():
-    """Health check endpoint"""
+    """Health check endpoint with component status"""
     db_status = await test_connection_async()
+    
+    # Check WAQI API availability (lightweight check)
+    waqi_status = "disabled"
+    if settings.WAQI_API_TOKEN and settings.WAQI_API_TOKEN != "demo":
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=5) as client:
+                r = await client.get(
+                    f"https://api.waqi.info/feed/delhi/?token={settings.WAQI_API_TOKEN}",
+                    follow_redirects=True
+                )
+            waqi_status = "ok" if r.status_code == 200 else "degraded"
+        except Exception as e:
+            logger.warning(f"WAQI health check failed: {e}")
+            waqi_status = "unreachable"
+
+    # Overall status
+    overall_status = "healthy"
+    if db_status.get("status") != "connected":
+        overall_status = "degraded"
+    if waqi_status == "unreachable":
+        overall_status = "degraded"
 
     return HealthResponse(
-        status="healthy",
+        status=overall_status,
         version=settings.APP_VERSION,
         database=db_status,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.utcnow(),
+        # Add components dict if HealthResponse schema allows
+        **{"components": {"database": db_status.get("status"), "waqi_api": waqi_status}}
     )
 
 
