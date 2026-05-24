@@ -42,8 +42,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -206,6 +206,12 @@ async def health_check():
         # Add components dict if HealthResponse schema allows
         **{"components": {"database": db_status.get("status"), "waqi_api": waqi_status}}
     )
+
+
+@app.get("/health", response_model=HealthResponse, tags=["Health"])
+async def health_check_alias():
+    """Root health check alias for uptime probes and cold-start pings."""
+    return await health_check()
 
 
 @app.get("/api/status", tags=["Health"])

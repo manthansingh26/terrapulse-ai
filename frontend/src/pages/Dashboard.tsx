@@ -27,12 +27,11 @@ import {
   TrendingUp,
   Wind,
 } from 'lucide-react'
-import { apiClient, City, getApiErrorMessage, MLInsights } from '@/services/api'
+import { API_BASE_URL, apiClient, City, getApiErrorMessage, MLInsights } from '@/services/api'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import DataSourceNotice from '@/components/DataSourceNotice'
 import { FreshnessBadge } from '@/components/FreshnessBadge'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 const wsUrl = API_BASE_URL.replace(/^http/, 'ws').replace(/\/api\/?$/, '/api/ws/cities')
 
 const riskColor = {

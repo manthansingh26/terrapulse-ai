@@ -1,6 +1,14 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://terrapulse-ai.onrender.com/api'
+const normalizeApiBaseUrl = () => {
+  const rawUrl = String(import.meta.env.VITE_API_URL || 'https://terrapulse-ai.onrender.com/api').trim()
+  const withoutTrailingSlash = rawUrl.replace(/\/+$/, '')
+  return withoutTrailingSlash.endsWith('/api')
+    ? withoutTrailingSlash
+    : `${withoutTrailingSlash}/api`
+}
+
+const API_BASE_URL = normalizeApiBaseUrl()
 
 interface LoginRequest {
   username?: string
@@ -434,7 +442,13 @@ class APIClient {
   }
 
   async login(data: LoginRequest): Promise<Token> {
-    const response = await this.client.post('/auth/login', data, { timeout: 60000 })
+    try {
+      await axios.get(`${API_BASE_URL}/health`, { timeout: 5000 })
+    } catch {
+      // Ignore the wake-up ping failure; the login request below has the long timeout.
+    }
+
+    const response = await this.client.post('/auth/login', data, { timeout: 65000 })
     return response.data
   }
 
@@ -585,4 +599,4 @@ export type {
   MLForecastAlert,
 }
 export { getApiErrorMessage }
-export { getUserFromToken, mergeUserWithToken, saveAuthSnapshot, clearAuthStorage }
+export { API_BASE_URL, getUserFromToken, mergeUserWithToken, saveAuthSnapshot, clearAuthStorage }

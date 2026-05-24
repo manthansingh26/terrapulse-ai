@@ -1,8 +1,8 @@
 import React from 'react'
 import { useAuth } from '@/hooks/useAuth'
+import { API_BASE_URL } from '@/services/api'
 import { Mail, User, Calendar, Shield } from 'lucide-react'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 const API_DOCS_URL = API_BASE_URL.replace(/\/api\/?$/, '/api/docs')
 
 const Profile: React.FC = () => {

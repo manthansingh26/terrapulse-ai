@@ -4,6 +4,33 @@ from pydantic_settings import BaseSettings
 from pydantic import field_validator
 
 
+DEFAULT_ALLOWED_ORIGINS = [
+    "https://terrapulse-ai.vercel.app",
+    "https://terrapulse-ai-git-main-manthansingh26.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:8501",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+]
+
+
+def parse_origins(value: str) -> list[str]:
+    """Parse comma-separated or JSON-like origin lists from environment variables."""
+    if not value:
+        return []
+
+    cleaned = value.strip()
+    if cleaned.startswith("[") and cleaned.endswith("]"):
+        cleaned = cleaned[1:-1]
+
+    return [
+        origin.strip().strip('"').strip("'")
+        for origin in cleaned.split(",")
+        if origin.strip().strip('"').strip("'")
+    ]
+
+
 class Settings(BaseSettings):
     """Application configuration"""
     
@@ -69,22 +96,11 @@ class Settings(BaseSettings):
     
     def __init__(self, **data):
         super().__init__(**data)
-        # Set CORS origins based on environment
-        if self.ENVIRONMENT == "production":
-            self.ALLOWED_ORIGINS = [
-                "https://terrapulse-ai.vercel.app",
-                os.getenv("ALLOWED_ORIGINS", "https://terrapulse-ai.vercel.app").split(","),
-            ]
-            # Flatten if it's a list
-            if isinstance(self.ALLOWED_ORIGINS[-1], list):
-                self.ALLOWED_ORIGINS = self.ALLOWED_ORIGINS[:-1] + self.ALLOWED_ORIGINS[-1]
-        else:
-            # Development: allow localhost
-            allowed = os.getenv(
-                "ALLOWED_ORIGINS",
-                "http://localhost:5173,http://localhost:3000,http://localhost:8501,http://127.0.0.1:5173,http://127.0.0.1:3000"
-            )
-            self.ALLOWED_ORIGINS = [origin.strip() for origin in allowed.split(",")]
+        configured_origins = (
+            parse_origins(os.getenv("ALLOWED_ORIGINS", ""))
+            + parse_origins(os.getenv("CORS_ORIGINS", ""))
+        )
+        self.ALLOWED_ORIGINS = list(dict.fromkeys(DEFAULT_ALLOWED_ORIGINS + configured_origins))
 
     class Config:
         env_file = ".env"

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/context/AuthContext'
 import AppIntro from '@/components/AppIntro'
@@ -8,6 +8,7 @@ import { WakingUpBanner } from '@/components/WakingUpBanner'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
+import { startKeepAlive } from '@/utils/keepAlive'
 import '@/styles/global.css'
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'))
@@ -23,6 +24,11 @@ const PageLoader = () => (
 )
 
 function App() {
+  useEffect(() => {
+    const stopKeepAlive = startKeepAlive()
+    return stopKeepAlive
+  }, [])
+
   return (
     <Router>
       <AuthProvider>
