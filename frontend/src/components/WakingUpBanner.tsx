@@ -32,10 +32,22 @@ export function WakingUpBanner() {
           <span>Backend is waking up (attempt {attempt}/4) — this takes ~30s on first load…</span>
         </>
       ) : (
-        <>
+        <div className="flex items-center gap-3 w-full">
           <span>❌</span>
-          <span>Backend is unreachable. Please try refreshing in a moment.</span>
-        </>
+          <div>
+            <p className="font-medium">Server took too long to respond.</p>
+            <p className="text-xs mt-0.5 opacity-80">
+              The backend is still waking up. Wait 30 seconds and:
+            </p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="ml-auto px-3 py-1 bg-amber-700 text-white rounded-lg text-xs font-medium
+                       hover:bg-amber-800 whitespace-nowrap"
+          >
+            Reload page
+          </button>
+        </div>
       )}
     </div>
   )

@@ -88,6 +88,14 @@ const ModelLab: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
 
   const loadModelLab = async () => {
+    let cancelled = false
+    const controller = new AbortController()
+
+    // Auto-timeout after 30 seconds
+    const timeout = setTimeout(() => {
+      controller.abort()
+    }, 30000)
+
     try {
       setError(null)
       const [metricsData, runsData, qualityData, importanceData, evaluationData, forecastData, explanationData] = await Promise.all([
@@ -99,18 +107,38 @@ const ModelLab: React.FC = () => {
         apiClient.getAllForecasts(),
         apiClient.getTopForecastExplanations(5),
       ])
-      setMetrics(metricsData)
-      setModelRuns(runsData)
-      setDataQuality(qualityData)
-      setFeatureImportance(importanceData)
-      setEvaluationSamples(evaluationData)
-      setForecasts(forecastData)
-      setForecastExplanations(explanationData)
-    } catch (err) {
-      setError('Unable to load model artifacts. Train the model or check backend status.')
-      console.error(err)
+      if (!cancelled) {
+        setMetrics(metricsData)
+        setModelRuns(runsData)
+        setDataQuality(qualityData)
+        setFeatureImportance(importanceData)
+        setEvaluationSamples(evaluationData)
+        setForecasts(forecastData)
+        setForecastExplanations(explanationData)
+      }
+    } catch (err: any) {
+      if (!cancelled) {
+        setIsLoading(false)
+        if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
+          setError('Request timed out (30s). The backend may still be waking up. Please refresh the page.')
+        } else if (!err.response) {
+          setError('Cannot reach the server. Please wait 30 seconds and refresh.')
+        } else {
+          setError('Unable to load model artifacts. Train the model or check backend status.')
+        }
+        console.error(err)
+      }
     } finally {
-      setIsLoading(false)
+      clearTimeout(timeout)
+      if (!cancelled) {
+        setIsLoading(false)
+      }
+    }
+
+    return () => {
+      cancelled = true
+      controller.abort()
+      clearTimeout(timeout)
     }
   }
 
@@ -286,13 +314,28 @@ const ModelLab: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="h-44 rounded-lg bg-slate-200 animate-pulse" />
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          {[1, 2, 3, 4].map((item) => (
-            <div key={item} className="h-32 rounded-lg bg-slate-200 animate-pulse" />
-          ))}
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-64 gap-4">
+        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+        <p className="text-sm text-gray-500">Loading ML model data…</p>
+        <p className="text-xs text-gray-400">
+          (First load takes ~30s while the server wakes up)
+        </p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-64 gap-4 text-center px-6">
+        <div className="text-4xl">⚠️</div>
+        <h3 className="text-lg font-semibold text-gray-800">Model Lab unavailable</h3>
+        <p className="text-sm text-gray-500 max-w-sm">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 font-medium"
+        >
+          Refresh Page
+        </button>
       </div>
     )
   }

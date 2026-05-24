@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import { getApiErrorMessage } from '@/services/api'
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('')
@@ -19,8 +18,28 @@ const Login: React.FC = () => {
     try {
       await login(username, password)
       navigate('/')
-    } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'Login failed. Please try again.'))
+    } catch (err: any) {
+      setIsLoading(false)
+      
+      // Detect backend status from error
+      const isNetworkError = !err.response
+      const isColdStart = [502, 503, 504].includes(err.response?.status)
+      const isUnauthorized = err.response?.status === 401
+
+      if (isNetworkError || isColdStart) {
+        setError(
+          'Server is still waking up. Please wait 30 seconds and try again, ' +
+          'or click "Try Demo" to auto-retry.'
+        )
+      } else if (isUnauthorized) {
+        setError('Invalid username or password. Demo credentials: demo / demo123')
+      } else {
+        setError(
+          err.response?.data?.detail ||
+          err.message ||
+          'Login failed. Please try again.'
+        )
+      }
     } finally {
       setIsLoading(false)
     }
@@ -46,8 +65,22 @@ const Login: React.FC = () => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {error}
+              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                <div className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">⚠</span>
+                  <div className="flex-1">
+                    <p>{error}</p>
+                    {error.includes('waking up') && (
+                      <button
+                        type="button"
+                        onClick={handleSubmit}
+                        className="mt-2 text-blue-600 underline text-xs font-medium"
+                      >
+                        Try again now →
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -59,7 +92,10 @@ const Login: React.FC = () => {
               <input
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value)
+                  setError('')
+                }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
                 placeholder="Enter your username"
                 required
@@ -74,7 +110,10 @@ const Login: React.FC = () => {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value)
+                  setError('')
+                }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
                 placeholder="Enter your password"
                 required
