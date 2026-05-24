@@ -1,6 +1,10 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
 
 const normalizeApiBaseUrl = () => {
+  if (typeof window !== 'undefined' && window.location.hostname === 'terrapulse-ai.vercel.app') {
+    return '/api'
+  }
+
   const rawUrl = String(import.meta.env.VITE_API_URL || 'https://terrapulse-ai.onrender.com/api').trim()
   const withoutTrailingSlash = rawUrl.replace(/\/+$/, '')
   return withoutTrailingSlash.endsWith('/api')

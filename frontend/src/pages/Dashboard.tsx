@@ -32,7 +32,9 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import DataSourceNotice from '@/components/DataSourceNotice'
 import { FreshnessBadge } from '@/components/FreshnessBadge'
 
-const wsUrl = API_BASE_URL.replace(/^http/, 'ws').replace(/\/api\/?$/, '/api/ws/cities')
+const wsUrl = API_BASE_URL.startsWith('http')
+  ? API_BASE_URL.replace(/^http/, 'ws').replace(/\/api\/?$/, '/api/ws/cities')
+  : 'wss://terrapulse-ai.onrender.com/api/ws/cities'
 
 const riskColor = {
   Low: '#10b981',
