@@ -1,6 +1,7 @@
 import os
 from functools import lru_cache
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 
 
 class Settings(BaseSettings):
@@ -11,6 +12,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "2.0.0"
     API_PREFIX: str = "/api"
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     
     # Database
     DATABASE_URL: str = os.getenv(
@@ -24,14 +26,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
-    # CORS
-    ALLOWED_ORIGINS: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:8501",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:8501",
-        "*"  # Allow all in development
-    ]
+    # CORS - configurable based on environment
+    ALLOWED_ORIGINS: list[str] = []
     
     # APIs
     WAQI_API_TOKEN: str = os.getenv("WAQI_API_TOKEN", "demo")
@@ -48,6 +44,47 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
     ALERT_EMAIL: str = os.getenv("ALERT_EMAIL", "admin@terrapulse.com")
     AQI_ALERT_THRESHOLD: int = int(os.getenv("AQI_ALERT_THRESHOLD", "200"))
+    
+    @field_validator("SECRET_KEY")
+    @classmethod
+    def secret_key_must_be_strong(cls, v: str) -> str:
+        """Validate SECRET_KEY is strong and not a default value"""
+        weak_defaults = {
+            "changeme",
+            "secret",
+            "your-secret-key",
+            "your-secret-key-change-in-production-12345",
+            "supersecret",
+            "password",
+            "123456",
+            "demo"
+        }
+        
+        if v.lower() in weak_defaults or len(v) < 32:
+            raise ValueError(
+                "SECRET_KEY is too weak or is a default value. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        return v
+    
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Set CORS origins based on environment
+        if self.ENVIRONMENT == "production":
+            self.ALLOWED_ORIGINS = [
+                "https://terrapulse-ai.vercel.app",
+                os.getenv("ALLOWED_ORIGINS", "https://terrapulse-ai.vercel.app").split(","),
+            ]
+            # Flatten if it's a list
+            if isinstance(self.ALLOWED_ORIGINS[-1], list):
+                self.ALLOWED_ORIGINS = self.ALLOWED_ORIGINS[:-1] + self.ALLOWED_ORIGINS[-1]
+        else:
+            # Development: allow localhost
+            allowed = os.getenv(
+                "ALLOWED_ORIGINS",
+                "http://localhost:5173,http://localhost:3000,http://localhost:8501,http://127.0.0.1:5173,http://127.0.0.1:3000"
+            )
+            self.ALLOWED_ORIGINS = [origin.strip() for origin in allowed.split(",")]
 
     class Config:
         env_file = ".env"

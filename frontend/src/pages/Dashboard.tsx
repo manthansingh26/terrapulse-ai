@@ -30,6 +30,7 @@ import {
 import { apiClient, City, MLInsights } from '@/services/api'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import DataSourceNotice from '@/components/DataSourceNotice'
+import { FreshnessBadge } from '@/components/FreshnessBadge'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 const wsUrl = API_BASE_URL.replace(/^http/, 'ws').replace(/\/api\/?$/, '/api/ws/cities')
@@ -424,6 +425,7 @@ const Dashboard: React.FC = () => {
                 <th className="px-3 py-3">Risk</th>
                 <th className="px-3 py-3">Confidence</th>
                 <th className="px-3 py-3">Weather</th>
+                <th className="px-3 py-3">Data Age</th>
               </tr>
             </thead>
             <tbody>
@@ -447,6 +449,9 @@ const Dashboard: React.FC = () => {
                     <td className="px-3 py-4 text-slate-700">{Math.round(item.confidence * 100)}%</td>
                     <td className="px-3 py-4 text-slate-700">
                       {city?.current_temperature?.toFixed(1) || '0.0'} C / {city?.current_humidity?.toFixed(0) || '0'}%
+                    </td>
+                    <td className="px-3 py-4">
+                      <FreshnessBadge lastFetchedAt={city?.last_updated} />
                     </td>
                   </tr>
                 )

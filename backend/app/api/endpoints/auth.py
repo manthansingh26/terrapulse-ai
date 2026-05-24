@@ -9,6 +9,7 @@ from app.schemas.schemas import (
 )
 from app.core.security import AuthService, get_current_user
 from app.core.config import get_settings
+from app.main import app
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 settings = get_settings()
@@ -69,10 +70,19 @@ async def register(
 
 @router.post("/login", response_model=Token)
 async def login(
+    request: Request,
     credentials: UserLogin,
     db: Session = Depends(get_db)
 ):
     """User login - accepts email or username"""
+    
+    # Apply rate limit
+    try:
+        if hasattr(app, 'state') and hasattr(app.state, 'limiter'):
+            app.state.limiter.hit(request, "10/minute")
+    except:
+        # Continue even if rate limiting fails
+        pass
 
     # Find user by email or username
     user = None

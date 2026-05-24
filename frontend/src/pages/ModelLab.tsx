@@ -747,11 +747,11 @@ const ModelLab: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-5 overflow-x-auto">
-          <table className="w-full min-w-[860px] text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-                <th className="px-3 py-3">Run ID</th>
+         <div className="mt-5 overflow-x-auto -mx-5 px-5 sm:overflow-visible sm:mx-0 sm:px-0">
+           <table className="w-full min-w-[860px] sm:min-w-full text-sm">
+             <thead>
+               <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                 <th className="px-3 py-3">Run ID</th>
                 <th className="px-3 py-3">Trained</th>
                 <th className="px-3 py-3">Validation</th>
                 <th className="px-3 py-3">Rows</th>
@@ -835,24 +835,43 @@ const ModelLab: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-5 overflow-x-auto">
-          <table className="w-full min-w-[860px] text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-                <th className="px-3 py-3">City</th>
-                <th className="px-3 py-3">Sample AQI</th>
-                <th className="px-3 py-3">Predicted AQI</th>
-                <th className="px-3 py-3">Change</th>
-                <th className="px-3 py-3">Risk</th>
-                <th className="px-3 py-3">Confidence</th>
-              </tr>
-            </thead>
+        {forecasts.some(f => f.data_sufficiency && !f.data_sufficiency.is_sufficient) && (
+          <div className="mt-4 flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <AlertCircle size={20} className="mt-0.5 flex-shrink-0 text-amber-600" />
+            <div>
+              <p className="font-semibold text-amber-900">Limited historical data</p>
+              <p className="mt-1 text-sm text-amber-800">
+                Some cities have fewer than 48 readings. Forecast confidence may be reduced. Consider collecting more data before relying on predictions.
+              </p>
+            </div>
+          </div>
+        )}
+
+         <div className="mt-5 overflow-x-auto -mx-5 px-5 sm:overflow-visible sm:mx-0 sm:px-0">
+           <table className="w-full min-w-[860px] sm:min-w-full text-sm">
+             <thead>
+               <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                 <th className="px-3 py-3">City</th>
+                 <th className="px-3 py-3">Sample AQI</th>
+                 <th className="px-3 py-3">Predicted AQI</th>
+                 <th className="px-3 py-3">Change</th>
+                 <th className="px-3 py-3">Risk</th>
+                 <th className="px-3 py-3">Confidence</th>
+               </tr>
+             </thead>
             <tbody>
               {forecasts.map((forecast) => {
                 const riskTone = riskClass[forecast.risk_level as keyof typeof riskClass] || riskClass.Fair
                 return (
                   <tr key={forecast.city} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-3 py-4 font-bold text-slate-950">{forecast.city}</td>
+                    <td className="px-3 py-4">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-950">{forecast.city}</span>
+                        {forecast.data_sufficiency && !forecast.data_sufficiency.is_sufficient && (
+                          <span title={forecast.data_sufficiency.warning} className="text-amber-500">⚠️</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-3 py-4 text-slate-700">{forecast.current_aqi}</td>
                     <td className="px-3 py-4 font-bold text-slate-950">{forecast.predicted_aqi_24h}</td>
                     <td className={`px-3 py-4 font-semibold ${forecast.change >= 0 ? 'text-red-600' : 'text-emerald-600'}`}>

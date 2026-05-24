@@ -53,6 +53,11 @@ def latest_city_record(db: Session, city: str) -> EnvironmentalData | None:
     )
 
 
+def count_city_readings(db: Session, city: str) -> int:
+    """Count total readings for a city. Requires >= 48 for reliable forecasts."""
+    return db.query(EnvironmentalData).filter(EnvironmentalData.city == city).count()
+
+
 @router.post("/train", response_model=MLTrainingResponse)
 async def train_aqi_model(
     request: Request,
@@ -193,7 +198,10 @@ async def get_evaluation_samples():
 
 @router.get("/forecast/all", response_model=list[AQIForecastResponse])
 async def forecast_all_cities(db: Session = Depends(get_db)):
-    """Predict AQI 24 hours ahead for every monitored city."""
+    """Predict AQI 24 hours ahead for every monitored city.
+    
+    Requires at least 48 historical readings per city for reliable forecasts.
+    """
     subquery = (
         db.query(
             EnvironmentalData.city,
@@ -215,7 +223,18 @@ async def forecast_all_cities(db: Session = Depends(get_db)):
     )
 
     try:
-        predictions = [predict_record(record) for record in records]
+        predictions = []
+        for record in records:
+            reading_count = count_city_readings(db, record.city)
+            prediction = predict_record(record)
+            # Add data_sufficiency flag: True if >= 48 readings
+            prediction["data_sufficiency"] = {
+                "reading_count": reading_count,
+                "required_readings": 48,
+                "is_sufficient": reading_count >= 48,
+                "warning": None if reading_count >= 48 else f"Only {reading_count} readings available; recommend ≥48 for confidence"
+            }
+            predictions.append(prediction)
     except FileNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -226,6 +245,7 @@ async def forecast_all_cities(db: Session = Depends(get_db)):
         prediction["generated_at"] = datetime.fromisoformat(prediction["generated_at"])
 
     return sorted(predictions, key=lambda item: item["predicted_aqi_24h"], reverse=True)
+
 
 
 @router.get("/explain/top", response_model=list[AQIPredictionExplanationResponse])
@@ -270,7 +290,10 @@ async def explain_top_city_forecasts(
 
 @router.get("/forecast/{city}", response_model=AQIForecastResponse)
 async def forecast_city(city: str, db: Session = Depends(get_db)):
-    """Predict AQI 24 hours ahead for one city."""
+    """Predict AQI 24 hours ahead for one city.
+    
+    Requires at least 48 historical readings for reliable forecast.
+    """
     record = latest_city_record(db, city)
     if not record:
         raise HTTPException(
@@ -286,6 +309,13 @@ async def forecast_city(city: str, db: Session = Depends(get_db)):
             detail=f"{exc}. Run POST /api/ml/train first.",
         ) from exc
 
+    reading_count = count_city_readings(db, city)
+    prediction["data_sufficiency"] = {
+        "reading_count": reading_count,
+        "required_readings": 48,
+        "is_sufficient": reading_count >= 48,
+        "warning": None if reading_count >= 48 else f"Only {reading_count} readings available; recommend ≥48 for confidence"
+    }
     prediction["generated_at"] = datetime.fromisoformat(prediction["generated_at"])
     return prediction
 

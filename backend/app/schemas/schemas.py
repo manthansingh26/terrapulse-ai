@@ -199,6 +199,10 @@ class AQIForecastResponse(BaseModel):
     risk_level: str
     confidence: float
     generated_at: datetime
+    aqi_lower: Optional[float] = None  # Lower confidence bound (mean - 1σ)
+    aqi_upper: Optional[float] = None  # Upper confidence bound (mean + 1σ)
+    data_sufficiency: Optional[dict] = None  # Data sufficiency check: reading_count, required_readings, is_sufficient, warning
+
 
 
 class PredictionExplanationFactor(BaseModel):

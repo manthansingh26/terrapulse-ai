@@ -5,6 +5,7 @@ import AppIntro from '@/components/AppIntro'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Layout from '@/components/Layout'
 import { WakingUpBanner } from '@/components/WakingUpBanner'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import '@/styles/global.css'
@@ -35,11 +36,11 @@ function App() {
 
             {/* Protected routes */}
             <Route element={<Layout />}>
-              <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/map" element={<ProtectedRoute><Map /></ProtectedRoute>} />
-              <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-              <Route path="/model-lab" element={<ProtectedRoute><ModelLab /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/" element={<ProtectedRoute><ErrorBoundary pageName="Dashboard"><Dashboard /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/map" element={<ProtectedRoute><ErrorBoundary pageName="Map"><Map /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/analytics" element={<ProtectedRoute><ErrorBoundary pageName="Analytics"><Analytics /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/model-lab" element={<ProtectedRoute><ErrorBoundary pageName="ModelLab"><ModelLab /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><ErrorBoundary pageName="Profile"><Profile /></ErrorBoundary></ProtectedRoute>} />
             </Route>
 
             {/* Fallback */}

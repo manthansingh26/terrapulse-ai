@@ -14,6 +14,21 @@ jobs:
       run:
         working-directory: ./backend
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: terrapulse_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -37,11 +52,13 @@ jobs:
 
       - name: Run tests
         env:
-          DATABASE_URL: "sqlite:///./ci_test.db"
-          SECRET_KEY: "ci-test-secret-key-not-for-production"
+          DATABASE_URL: postgresql://test:test@localhost:5432/terrapulse_test
+          SECRET_KEY: "ci-test-secret-key-not-for-production-must-be-32-characters-long-1"
           APP_NAME: "TerraPulse AI"
           APP_VERSION: "2.0.0"
           DEBUG: "false"
+          ENVIRONMENT: "development"
+          WAQI_API_TOKEN: "test_token_not_real"
         run: pytest tests/ -v --tb=short
 
   frontend:

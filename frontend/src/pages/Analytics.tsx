@@ -404,11 +404,11 @@ const Analytics: React.FC = () => {
         </>
       )}
 
-      {activeTab === 'trends' && (
-        <div className="card p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Temperature & Humidity Correlation</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+       {activeTab === 'trends' && (
+         <div className="card p-6">
+           <h2 className="text-lg font-semibold text-gray-900 mb-6">Temperature & Humidity Correlation</h2>
+           <div className="overflow-x-auto -mx-6 px-6 sm:overflow-visible sm:mx-0 sm:px-0">
+             <table className="w-full min-w-[600px] sm:min-w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-gray-200">
                   <th className="text-left py-3 px-4 font-bold text-gray-700">City</th>
