@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.core.security import get_current_user
+from app.core.limiter import limiter
 from app.ml.aqi_model import (
     explain_record,
     load_evaluation_samples,
@@ -68,11 +69,9 @@ async def train_aqi_model(
     
     Requires authentication. Limited to 3 training runs per hour per IP.
     """
-    from app.main import app
     try:
         # Apply rate limit
-        if hasattr(app, 'state') and hasattr(app.state, 'limiter'):
-            app.state.limiter.hit(request, "3/hour")
+        limiter.hit(request, "3/hour")
     except:
         # Continue even if rate limiting fails
         pass

@@ -9,7 +9,7 @@ from app.schemas.schemas import (
 )
 from app.core.security import AuthService, get_current_user
 from app.core.config import get_settings
-from app.main import app
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 settings = get_settings()
@@ -78,8 +78,7 @@ async def login(
     
     # Apply rate limit
     try:
-        if hasattr(app, 'state') and hasattr(app.state, 'limiter'):
-            app.state.limiter.hit(request, "10/minute")
+        limiter.hit(request, "10/minute")
     except:
         # Continue even if rate limiting fails
         pass

@@ -2,13 +2,13 @@ from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 import logging
 from datetime import datetime, timedelta
 
 from app.core.config import get_settings
+from app.core.limiter import limiter
 from app.db.database import engine, Base, SessionLocal, test_connection_async, test_connection
 from app.models.models import User, EnvironmentalData, AirQualityHistory, APILog, AlertHistory
 from app.api.endpoints import auth, data, cities, websocket, alerts, ml
@@ -22,9 +22,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 settings = get_settings()
-
-# Setup rate limiter
-limiter = Limiter(key_func=get_remote_address)
 
 # Create FastAPI app
 app = FastAPI(
