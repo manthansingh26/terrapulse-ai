@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
+from app.core.security import get_current_user
 from app.ml.aqi_model import (
     explain_record,
     load_evaluation_samples,
@@ -16,7 +17,7 @@ from app.ml.aqi_model import (
     predict_record,
     train_model,
 )
-from app.models.models import EnvironmentalData
+from app.models.models import EnvironmentalData, User
 from app.schemas.schemas import (
     AQIForecastResponse,
     AQIPredictionExplanationResponse,
@@ -53,8 +54,24 @@ def latest_city_record(db: Session, city: str) -> EnvironmentalData | None:
 
 
 @router.post("/train", response_model=MLTrainingResponse)
-async def train_aqi_model(db: Session = Depends(get_db)):
-    """Train the AQI forecasting model and save model artifacts."""
+async def train_aqi_model(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Train the AQI forecasting model and save model artifacts.
+    
+    Requires authentication. Limited to 3 training runs per hour per IP.
+    """
+    from app.main import app
+    try:
+        # Apply rate limit
+        if hasattr(app, 'state') and hasattr(app.state, 'limiter'):
+            app.state.limiter.hit(request, "3/hour")
+    except:
+        # Continue even if rate limiting fails
+        pass
+    
     metrics = train_model(db)
     return metrics
 

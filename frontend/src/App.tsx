@@ -4,6 +4,7 @@ import { AuthProvider } from '@/context/AuthContext'
 import AppIntro from '@/components/AppIntro'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Layout from '@/components/Layout'
+import { WakingUpBanner } from '@/components/WakingUpBanner'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import '@/styles/global.css'
@@ -24,6 +25,7 @@ function App() {
   return (
     <Router>
       <AuthProvider>
+        <WakingUpBanner />
         <AppIntro />
         <Suspense fallback={<PageLoader />}>
           <Routes>

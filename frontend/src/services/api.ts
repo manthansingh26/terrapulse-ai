@@ -216,6 +216,8 @@ const getApiErrorMessage = (error: unknown, fallback: string): string => {
 
 class APIClient {
   private client: AxiosInstance
+  // @ts-expect-error -- state is set internally and consumed by external event listeners
+  private _isWakingUp: boolean = false
 
   constructor() {
     this.client = axios.create({
@@ -261,18 +263,41 @@ class APIClient {
       }
     )
 
-    // Retry logic for Render cold-start delays (retries on network error or 502/503/504)
+    // Retry logic with exponential backoff for Render cold-start (502/503) and network errors
     this.client.interceptors.response.use(
-      undefined,
+      (response) => response,
       async (error) => {
         const config = error.config
-        if (!config || config._retryCount >= 2) return Promise.reject(error)
-        const shouldRetry =
-          !error.response || [502, 503, 504].includes(error.response?.status)
-        if (!shouldRetry) return Promise.reject(error)
-        config._retryCount = (config._retryCount || 0) + 1
-        await new Promise((resolve) => setTimeout(resolve, 3000))
-        return this.client(config)
+        if (!config || config._retryCount >= 4) {
+          if (config?._retryCount >= 4) {
+            this._isWakingUp = false
+            window.dispatchEvent(new CustomEvent('backend:failed'))
+          }
+          return Promise.reject(error)
+        }
+
+        // Retry on network errors or 502/503 (Render cold start)
+        const isNetworkError = !error.response
+        const isColdStart = error.response?.status === 502 || error.response?.status === 503
+
+        if (isNetworkError || isColdStart) {
+          config._retryCount = (config._retryCount || 0) + 1
+          this._isWakingUp = true
+          window.dispatchEvent(
+            new CustomEvent('backend:waking', { detail: { attempt: config._retryCount } })
+          )
+
+          const delay = Math.min(1000 * Math.pow(2, config._retryCount), 15000) // exp backoff, max 15s
+          await new Promise((res) => setTimeout(res, delay))
+
+          if (config._retryCount >= 4) {
+            this._isWakingUp = false
+            window.dispatchEvent(new CustomEvent('backend:failed'))
+          }
+
+          return this.client(config)
+        }
+        return Promise.reject(error)
       }
     )
   }

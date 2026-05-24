@@ -26,6 +26,12 @@ const Login: React.FC = () => {
     }
   }
 
+  const handleTryDemo = () => {
+    setUsername('demo')
+    setPassword('demo123')
+    setError('')
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
@@ -83,7 +89,21 @@ const Login: React.FC = () => {
             >
               {isLoading ? 'Logging in...' : 'Login'}
             </button>
+
+            {/* Try Demo Button */}
+            <button
+              type="button"
+              onClick={handleTryDemo}
+              className="w-full border border-gray-400 text-gray-600 hover:bg-gray-100 rounded px-4 py-2 text-sm font-medium transition-colors"
+            >
+              Try Demo
+            </button>
           </form>
+
+          {/* Helper text */}
+          <p className="mt-4 text-center text-xs text-gray-500">
+            No account? Click Try Demo to explore the dashboard.
+          </p>
 
           {/* Footer */}
           <div className="mt-6 text-center">
