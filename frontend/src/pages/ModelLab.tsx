@@ -37,6 +37,7 @@ import {
   AQIForecast,
   EvaluationSample,
   FeatureImportanceItem,
+  getApiErrorMessage,
   MLDataQuality,
   MLForecastAlert,
   MLModelRunSummary,
@@ -73,6 +74,18 @@ const freshnessClass = {
   no_data: 'bg-slate-100 text-slate-700',
 }
 
+const getModelLabErrorMessage = (err: unknown, fallback: string) => {
+  if (
+    typeof err === 'object' &&
+    err !== null &&
+    ((err as { name?: string }).name === 'AbortError' || (err as { code?: string }).code === 'ERR_CANCELED')
+  ) {
+    return 'Request timed out. Backend is still waking up.'
+  }
+
+  return getApiErrorMessage(err, fallback)
+}
+
 const ModelLab: React.FC = () => {
   const [metrics, setMetrics] = useState<MLTrainingMetrics | null>(null)
   const [featureImportance, setFeatureImportance] = useState<FeatureImportanceItem[]>([])
@@ -88,57 +101,35 @@ const ModelLab: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
 
   const loadModelLab = async () => {
-    let cancelled = false
     const controller = new AbortController()
-
-    // Auto-timeout after 30 seconds
-    const timeout = setTimeout(() => {
-      controller.abort()
-    }, 30000)
+    const timeout = window.setTimeout(() => controller.abort(), 45000)
+    const config = { signal: controller.signal }
 
     try {
+      setIsLoading(true)
       setError(null)
       const [metricsData, runsData, qualityData, importanceData, evaluationData, forecastData, explanationData] = await Promise.all([
-        apiClient.getMLMetrics(),
-        apiClient.getMLRunHistory(),
-        apiClient.getMLDataQuality(),
-        apiClient.getFeatureImportance(),
-        apiClient.getEvaluationSamples(),
-        apiClient.getAllForecasts(),
-        apiClient.getTopForecastExplanations(5),
+        apiClient.getMLMetrics(config),
+        apiClient.getMLRunHistory(config),
+        apiClient.getMLDataQuality(config),
+        apiClient.getFeatureImportance(config),
+        apiClient.getEvaluationSamples(config),
+        apiClient.getAllForecasts(config),
+        apiClient.getTopForecastExplanations(5, config),
       ])
-      if (!cancelled) {
-        setMetrics(metricsData)
-        setModelRuns(runsData)
-        setDataQuality(qualityData)
-        setFeatureImportance(importanceData)
-        setEvaluationSamples(evaluationData)
-        setForecasts(forecastData)
-        setForecastExplanations(explanationData)
-      }
-    } catch (err: any) {
-      if (!cancelled) {
-        setIsLoading(false)
-        if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
-          setError('Request timed out (30s). The backend may still be waking up. Please refresh the page.')
-        } else if (!err.response) {
-          setError('Cannot reach the server. Please wait 30 seconds and refresh.')
-        } else {
-          setError('Unable to load model artifacts. Train the model or check backend status.')
-        }
-        console.error(err)
-      }
+      setMetrics(metricsData)
+      setModelRuns(runsData)
+      setDataQuality(qualityData)
+      setFeatureImportance(importanceData)
+      setEvaluationSamples(evaluationData)
+      setForecasts(forecastData)
+      setForecastExplanations(explanationData)
+    } catch (err: unknown) {
+      setError(getModelLabErrorMessage(err, 'Unable to load model artifacts. Train the model or check backend status.'))
+      console.error(err)
     } finally {
-      clearTimeout(timeout)
-      if (!cancelled) {
-        setIsLoading(false)
-      }
-    }
-
-    return () => {
-      cancelled = true
-      controller.abort()
-      clearTimeout(timeout)
+      window.clearTimeout(timeout)
+      setIsLoading(false)
     }
   }
 
@@ -147,18 +138,22 @@ const ModelLab: React.FC = () => {
   }, [])
 
   const handleRetrain = async () => {
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 45000)
+    const config = { signal: controller.signal }
+
     try {
       setIsTraining(true)
       setError(null)
-      const updatedMetrics = await apiClient.trainAQIModel()
+      const updatedMetrics = await apiClient.trainAQIModel(config)
       setMetrics(updatedMetrics)
       const [runsData, qualityData, importanceData, evaluationData, forecastData, explanationData] = await Promise.all([
-        apiClient.getMLRunHistory(),
-        apiClient.getMLDataQuality(),
-        apiClient.getFeatureImportance(),
-        apiClient.getEvaluationSamples(),
-        apiClient.getAllForecasts(),
-        apiClient.getTopForecastExplanations(5),
+        apiClient.getMLRunHistory(config),
+        apiClient.getMLDataQuality(config),
+        apiClient.getFeatureImportance(config),
+        apiClient.getEvaluationSamples(config),
+        apiClient.getAllForecasts(config),
+        apiClient.getTopForecastExplanations(5, config),
       ])
       setModelRuns(runsData)
       setDataQuality(qualityData)
@@ -166,24 +161,29 @@ const ModelLab: React.FC = () => {
       setEvaluationSamples(evaluationData)
       setForecasts(forecastData)
       setForecastExplanations(explanationData)
-    } catch (err) {
-      setError('Model retraining failed. Check backend logs and data availability.')
+    } catch (err: unknown) {
+      setError(getModelLabErrorMessage(err, 'Model retraining failed. Check backend logs and data availability.'))
       console.error(err)
     } finally {
+      window.clearTimeout(timeout)
       setIsTraining(false)
     }
   }
 
   const handleCheckAlerts = async () => {
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 45000)
+
     try {
       setIsCheckingAlerts(true)
       setError(null)
-      const results = await apiClient.checkAllMLForecastAlerts()
+      const results = await apiClient.checkAllMLForecastAlerts({ signal: controller.signal })
       setAlertResults(results)
-    } catch (err) {
-      setError('ML alert check failed. Confirm backend authentication and model artifacts are available.')
+    } catch (err: unknown) {
+      setError(getModelLabErrorMessage(err, 'ML alert check failed. Confirm backend authentication and model artifacts are available.'))
       console.error(err)
     } finally {
+      window.clearTimeout(timeout)
       setIsCheckingAlerts(false)
     }
   }
@@ -314,6 +314,39 @@ const ModelLab: React.FC = () => {
 
   if (isLoading) {
     return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin" />
+        <p className="text-sm text-gray-500 font-medium">Loading ML model data</p>
+        <p className="text-xs text-gray-400">
+          Backend is waking up - this takes about 30s on first load
+        </p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 text-center px-8">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-2xl font-bold text-red-600">
+          !
+        </div>
+        <h3 className="text-xl font-semibold text-gray-800">Model Lab Unavailable</h3>
+        <p className="text-sm text-gray-500 max-w-md">{error}</p>
+        <p className="text-xs text-gray-400">
+          Render free tier sleeps after inactivity. First load can take 30-60s.
+        </p>
+        <button
+          onClick={() => void loadModelLab()}
+          className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 active:scale-95 transition-all"
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
+
+  if (false && isLoading) {
+    return (
       <div className="flex flex-col items-center justify-center min-h-64 gap-4">
         <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
         <p className="text-sm text-gray-500">Loading ML model data…</p>
@@ -324,14 +357,14 @@ const ModelLab: React.FC = () => {
     )
   }
 
-  if (error) {
+  if (false && error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-64 gap-4 text-center px-6">
         <div className="text-4xl">⚠️</div>
         <h3 className="text-lg font-semibold text-gray-800">Model Lab unavailable</h3>
         <p className="text-sm text-gray-500 max-w-sm">{error}</p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => void loadModelLab()}
           className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 font-medium"
         >
           Refresh Page

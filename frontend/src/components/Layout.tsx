@@ -8,6 +8,7 @@ const Layout: React.FC = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const displayName = user?.username || user?.sub || user?.name || user?.full_name || user?.email?.split('@')[0] || 'User'
 
   const handleLogout = () => {
     logout()
@@ -72,7 +73,7 @@ const Layout: React.FC = () => {
           <div className="border-t border-white/10 p-6">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Signed in as</p>
             <p className="mt-1 truncate text-sm font-semibold text-white">
-              {user?.username || user?.full_name || user?.email?.split('@')[0] || 'User'}
+              {displayName}
             </p>
           </div>
         </div>
@@ -92,7 +93,7 @@ const Layout: React.FC = () => {
             <div className="ml-auto flex items-center gap-4">
               <div className="hidden text-sm text-slate-600 sm:block">
                 Welcome, <span className="font-semibold">
-                  {user?.full_name || user?.username || user?.email?.split('@')[0] || 'User'}
+                  {displayName}
                 </span>
               </div>
               <button

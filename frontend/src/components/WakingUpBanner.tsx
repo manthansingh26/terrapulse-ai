@@ -7,18 +7,20 @@ export function WakingUpBanner() {
   const [failed, setFailed] = useState(false)
   const location = useLocation()
 
-  // Don't show on login/register pages (they handle their own errors)
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register'
 
   useEffect(() => {
-    const onWaking = (e: Event) => {
+    const onWaking = (event: Event) => {
       setVisible(true)
       setFailed(false)
-      setAttempt((e as CustomEvent).detail.attempt)
+      setAttempt((event as CustomEvent).detail.attempt)
     }
+
     const onFailed = () => {
+      setVisible(true)
       setFailed(true)
     }
+
     window.addEventListener('backend:waking', onWaking)
     window.addEventListener('backend:failed', onFailed)
     return () => {
@@ -30,28 +32,31 @@ export function WakingUpBanner() {
   if (!visible || isAuthPage) return null
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-50 border border-yellow-300 text-yellow-800 px-5 py-3 rounded-lg shadow-md text-sm flex items-center gap-3">
-      {!failed ? (
-        <>
-          <span className="animate-spin">⏳</span>
-          <span>Backend is waking up (attempt {attempt}/4) — this takes ~30s on first load…</span>
-        </>
-      ) : (
-        <div className="flex items-center gap-3 w-full">
-          <span>❌</span>
-          <div>
-            <p className="font-medium">Server took too long to respond.</p>
-            <p className="text-xs mt-0.5 opacity-80">
-              The backend is still waking up. Wait 30 seconds and:
-            </p>
+    <div className="fixed bottom-4 left-1/2 z-50 w-[min(680px,calc(100%-2rem))] -translate-x-1/2 rounded-lg border border-yellow-300 bg-yellow-50 px-5 py-3 text-sm text-yellow-800 shadow-md">
+      {failed ? (
+        <div className="flex items-center justify-between gap-3 w-full flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="font-bold">!</span>
+            <div>
+              <p className="font-medium text-sm">
+                Server could not be reached after 4 attempts.
+              </p>
+              <p className="text-xs opacity-75">
+                Render free tier takes 60s on cold start. Please wait and reload.
+              </p>
+            </div>
           </div>
           <button
             onClick={() => window.location.reload()}
-            className="ml-auto px-3 py-1 bg-amber-700 text-white rounded-lg text-xs font-medium
-                       hover:bg-amber-800 whitespace-nowrap"
+            className="px-4 py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-xs font-semibold whitespace-nowrap transition-colors"
           >
             Reload page
           </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-yellow-300 border-t-yellow-700" />
+          <span>Backend is waking up (attempt {attempt}/4) - this takes about 30s on first load.</span>
         </div>
       )}
     </div>

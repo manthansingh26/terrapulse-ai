@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
-import { apiClient, City, EnvironmentalData } from '@/services/api'
+import { apiClient, City, EnvironmentalData, getApiErrorMessage } from '@/services/api'
 import { AlertCircle, TrendingUp, Thermometer, Droplets, Wind, Calendar, Filter, BarChart3, Activity, LineChart as LineChartIcon, Loader2 } from 'lucide-react'
 import DataSourceNotice from '@/components/DataSourceNotice'
 
@@ -29,22 +29,27 @@ const Analytics: React.FC = () => {
 
   useEffect(() => {
     const fetchCities = async () => {
+      const controller = new AbortController()
+      const timeout = window.setTimeout(() => controller.abort(), 45000)
+
       try {
         setIsLoading(true)
-        const data = await apiClient.getAllCities()
+        setError(null)
+        const data = await apiClient.getAllCities({ signal: controller.signal })
         setCities(data)
         if (data.length > 0) {
           setSelectedCity(data[0].city)
         }
-      } catch (err) {
-        setError('Failed to load analytics data')
+      } catch (err: unknown) {
+        setError(getApiErrorMessage(err, 'Failed to load analytics data'))
         console.error(err)
       } finally {
+        window.clearTimeout(timeout)
         setIsLoading(false)
       }
     }
 
-    fetchCities()
+    void fetchCities()
   }, [])
 
   const selectedCityData = cities.find((c) => c.city === selectedCity)
@@ -64,21 +69,25 @@ const Analytics: React.FC = () => {
     if (!selectedCity) return
 
     const fetchHistorical = async () => {
+      const controller = new AbortController()
+      const timeout = window.setTimeout(() => controller.abort(), 45000)
+
       try {
         setHistoricalLoading(true)
         setHistoricalError(null)
-        const data = await apiClient.getHistoricalData(selectedCity, dayCount)
+        const data = await apiClient.getHistoricalData(selectedCity, dayCount, { signal: controller.signal })
         setHistoricalData(data)
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Failed to fetch historical data:', err)
-        setHistoricalError('Failed to load historical data for this city')
+        setHistoricalError(getApiErrorMessage(err, 'Failed to load historical data for this city'))
         setHistoricalData([])
       } finally {
+        window.clearTimeout(timeout)
         setHistoricalLoading(false)
       }
     }
 
-    fetchHistorical()
+    void fetchHistorical()
   }, [selectedCity, dayCount])
 
   // Transform API data into chart format
@@ -121,11 +130,19 @@ const Analytics: React.FC = () => {
       color: city.current_aqi! <= 50 ? '#10b981' : city.current_aqi! <= 100 ? '#fbbf24' : city.current_aqi! <= 200 ? '#f97316' : '#ef4444',
     }))
 
+  const citiesWithAqi = cities.filter(c => c.current_aqi)
+  const citiesWithTemp = cities.filter(c => c.current_temperature)
+  const citiesWithHumidity = cities.filter(c => c.current_humidity)
+
   const summaryStats = {
-    highestAQI: Math.max(...cities.filter(c => c.current_aqi).map(c => c.current_aqi || 0)),
-    lowestAQI: Math.min(...cities.filter(c => c.current_aqi).map(c => c.current_aqi || 0)),
-    avgTemp: cities.filter(c => c.current_temperature).reduce((sum, c) => sum + (c.current_temperature || 0), 0) / cities.filter(c => c.current_temperature).length,
-    avgHumidity: cities.filter(c => c.current_humidity).reduce((sum, c) => sum + (c.current_humidity || 0), 0) / cities.filter(c => c.current_humidity).length,
+    highestAQI: citiesWithAqi.length ? Math.max(...citiesWithAqi.map(c => c.current_aqi || 0)) : 0,
+    lowestAQI: citiesWithAqi.length ? Math.min(...citiesWithAqi.map(c => c.current_aqi || 0)) : 0,
+    avgTemp: citiesWithTemp.length
+      ? citiesWithTemp.reduce((sum, c) => sum + (c.current_temperature || 0), 0) / citiesWithTemp.length
+      : 0,
+    avgHumidity: citiesWithHumidity.length
+      ? citiesWithHumidity.reduce((sum, c) => sum + (c.current_humidity || 0), 0) / citiesWithHumidity.length
+      : 0,
   }
 
   if (isLoading) {
@@ -169,9 +186,22 @@ const Analytics: React.FC = () => {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <AlertCircle className="text-red-600" size={20} />
-          <p className="text-red-700">{error}</p>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="text-red-600 mt-0.5 flex-shrink-0" size={20} />
+            <div>
+              <p className="text-red-700 font-medium">{error}</p>
+              <p className="mt-1 text-xs text-red-600">
+                Render free tier may need 30-60s to wake after inactivity.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-fit rounded-md bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
+          >
+            Retry
+          </button>
         </div>
       )}
 
@@ -287,9 +317,17 @@ const Analytics: React.FC = () => {
             </h2>
 
             {historicalError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 mb-4">
-                <AlertCircle className="text-red-600" size={18} />
-                <p className="text-red-700 text-sm">{historicalError}</p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="text-red-600 mt-0.5 flex-shrink-0" size={18} />
+                  <p className="text-red-700 text-sm">{historicalError}</p>
+                </div>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="w-fit rounded-md bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
+                >
+                  Retry
+                </button>
               </div>
             )}
 

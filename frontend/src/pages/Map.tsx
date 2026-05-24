@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { apiClient, City } from '@/services/api'
+import { apiClient, City, getApiErrorMessage } from '@/services/api'
 import DataSourceNotice from '@/components/DataSourceNotice'
 import {
   AlertCircle,
@@ -149,22 +149,27 @@ const Map: React.FC = () => {
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('all')
   const [lastUpdated, setLastUpdated] = useState('')
 
-  useEffect(() => {
-    const fetchCities = async () => {
-      try {
-        setIsLoading(true)
-        const data = await apiClient.getAllCities()
-        setCities(data)
-        setLastUpdated(new Date().toLocaleTimeString())
-      } catch (err) {
-        setError('Failed to load map intelligence. Check backend and database connection.')
-        console.error(err)
-      } finally {
-        setIsLoading(false)
-      }
-    }
+  const fetchCities = async () => {
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 45000)
 
-    fetchCities()
+    try {
+      setIsLoading(true)
+      setError(null)
+      const data = await apiClient.getAllCities({ signal: controller.signal })
+      setCities(data)
+      setLastUpdated(new Date().toLocaleTimeString())
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Failed to load map intelligence. Check backend and database connection.'))
+      console.error(err)
+    } finally {
+      window.clearTimeout(timeout)
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void fetchCities()
   }, [])
 
   const filteredCities = useMemo(
@@ -252,9 +257,22 @@ const Map: React.FC = () => {
       </section>
 
       {error && (
-        <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
-          <AlertCircle size={20} />
-          {error}
+        <div className="flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <AlertCircle size={20} className="mt-0.5 flex-shrink-0" />
+            <div>
+              <p>{error}</p>
+              <p className="mt-1 text-xs font-normal text-red-600">
+                Render free tier may need 30-60s to wake after inactivity.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => void fetchCities()}
+            className="w-fit rounded-md bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
+          >
+            Retry
+          </button>
         </div>
       )}
 

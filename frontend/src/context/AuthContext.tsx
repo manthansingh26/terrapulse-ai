@@ -1,5 +1,13 @@
 import React, { createContext, useState, useCallback, useEffect } from 'react'
-import { apiClient, getApiErrorMessage, User } from '@/services/api'
+import {
+  apiClient,
+  clearAuthStorage,
+  getApiErrorMessage,
+  getUserFromToken,
+  mergeUserWithToken,
+  saveAuthSnapshot,
+  User,
+} from '@/services/api'
 
 interface AuthContextType {
   user: User | null
@@ -23,12 +31,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const checkAuth = async () => {
       const token = localStorage.getItem('access_token')
       if (token) {
+        const tokenUser = getUserFromToken(token)
+        setUser(tokenUser)
         try {
           const currentUser = await apiClient.getCurrentUser()
-          setUser(currentUser)
+          const mergedUser = mergeUserWithToken(currentUser, token)
+          setUser(mergedUser)
+          saveAuthSnapshot(token, mergedUser)
         } catch (err) {
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('refresh_token')
+          saveAuthSnapshot(token, tokenUser)
         }
       }
       setIsLoading(false)
@@ -46,9 +57,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await apiClient.login(loginField)
       localStorage.setItem('access_token', response.access_token)
       localStorage.setItem('refresh_token', response.refresh_token)
-      
-      const currentUser = await apiClient.getCurrentUser()
-      setUser(currentUser)
+
+      const fallbackUser = getUserFromToken(response.access_token, username || 'User')
+      setUser(fallbackUser)
+      saveAuthSnapshot(response.access_token, fallbackUser)
+
+      try {
+        const currentUser = await apiClient.getCurrentUser()
+        const mergedUser = mergeUserWithToken(currentUser, response.access_token, username || 'User')
+        setUser(mergedUser)
+        saveAuthSnapshot(response.access_token, mergedUser)
+      } catch {
+        // Login succeeded; keep the decoded token user if the profile endpoint is still waking up.
+      }
     } catch (err: unknown) {
       const message = getApiErrorMessage(err, 'Login failed')
       setError(message)
@@ -71,8 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback(() => {
     setUser(null)
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
+    clearAuthStorage()
   }, [])
 
   return (

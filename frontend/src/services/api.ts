@@ -1,6 +1,6 @@
-import axios, { AxiosInstance } from 'axios'
+import axios, { AxiosInstance, AxiosRequestConfig } from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://terrapulse-ai.onrender.com/api'
 
 interface LoginRequest {
   username?: string
@@ -26,10 +26,23 @@ interface User {
   id: number
   email: string
   username: string
+  sub?: string
+  name?: string
+  role?: string
   full_name?: string
   is_active: boolean
   is_admin: boolean
   created_at: string
+}
+
+interface JwtPayload {
+  sub?: string
+  username?: string
+  email?: string
+  full_name?: string
+  name?: string
+  role?: string
+  is_admin?: boolean
 }
 
 interface City {
@@ -212,11 +225,110 @@ interface MLForecastAlert {
 
 const getApiErrorMessage = (error: unknown, fallback: string): string => {
   if (axios.isAxiosError<ApiErrorBody>(error)) {
+    if (error.code === 'ERR_CANCELED' || error.code === 'ECONNABORTED') {
+      return 'Request timed out. Backend is still waking up.'
+    }
+
+    if (!error.response) {
+      return 'Cannot reach server. Please wait 30 seconds and retry.'
+    }
+
     return error.response?.data?.detail || error.response?.data?.error || fallback
   }
 
   return fallback
 }
+
+const decodeJwtPayload = (token: string): JwtPayload | null => {
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+
+    const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const decodedPayload = decodeURIComponent(
+      atob(normalizedPayload)
+        .split('')
+        .map((char) => `%${`00${char.charCodeAt(0).toString(16)}`.slice(-2)}`)
+        .join('')
+    )
+    return JSON.parse(decodedPayload) as JwtPayload
+  } catch {
+    return null
+  }
+}
+
+const getUserFromToken = (token: string, fallbackUsername = 'User'): User => {
+  const decoded = decodeJwtPayload(token)
+  const username = decoded?.sub || decoded?.username || decoded?.email || decoded?.name || fallbackUsername
+
+  return {
+    id: 0,
+    email: decoded?.email || '',
+    username,
+    sub: decoded?.sub,
+    name: decoded?.name,
+    role: decoded?.role || 'user',
+    full_name: decoded?.full_name || decoded?.name || '',
+    is_active: true,
+    is_admin: Boolean(decoded?.is_admin || decoded?.role === 'admin'),
+    created_at: '',
+  }
+}
+
+const mergeUserWithToken = (user: User, token: string, fallbackUsername = 'User'): User => {
+  const decodedUser = getUserFromToken(token, fallbackUsername)
+
+  return {
+    ...decodedUser,
+    ...user,
+    username: user.username || decodedUser.username,
+    email: user.email || decodedUser.email,
+    full_name: user.full_name || decodedUser.full_name,
+    sub: user.sub || decodedUser.sub,
+    name: user.name || decodedUser.name,
+    role: user.role || decodedUser.role,
+    is_active: user.is_active ?? decodedUser.is_active,
+    is_admin: user.is_admin ?? decodedUser.is_admin,
+    created_at: user.created_at || decodedUser.created_at,
+  }
+}
+
+const getPersistedToken = () => {
+  const token = localStorage.getItem('access_token')
+  if (token) return token
+
+  const authData = localStorage.getItem('terrapulse-auth')
+  if (!authData) return null
+
+  try {
+    const parsed = JSON.parse(authData) as { state?: { token?: string } }
+    return parsed.state?.token || null
+  } catch {
+    return null
+  }
+}
+
+const saveAuthSnapshot = (token: string, user: User | null) => {
+  localStorage.setItem(
+    'terrapulse-auth',
+    JSON.stringify({
+      state: {
+        token,
+        user,
+        isAuthenticated: true,
+      },
+    })
+  )
+}
+
+const clearAuthStorage = () => {
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('terrapulse-auth')
+}
+
+const isAuthRoute = (url?: string) =>
+  Boolean(url?.includes('/auth/login') || url?.includes('/auth/register') || url?.includes('/auth/refresh'))
 
 class APIClient {
   private client: AxiosInstance
@@ -226,6 +338,7 @@ class APIClient {
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE_URL,
+      timeout: 60000,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -233,7 +346,7 @@ class APIClient {
 
     // Add token to requests
     this.client.interceptors.request.use((config) => {
-      const token = localStorage.getItem('access_token')
+      const token = getPersistedToken()
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
       }
@@ -245,7 +358,7 @@ class APIClient {
       (response) => response,
       async (error) => {
         const originalRequest = error.config
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthRoute(originalRequest.url)) {
           originalRequest._retry = true
           const refreshToken = localStorage.getItem('refresh_token')
           if (refreshToken) {
@@ -255,14 +368,22 @@ class APIClient {
               })
               const { access_token } = response.data
               localStorage.setItem('access_token', access_token)
+              saveAuthSnapshot(access_token, getUserFromToken(access_token))
               originalRequest.headers.Authorization = `Bearer ${access_token}`
               return this.client(originalRequest)
             } catch (err) {
-              localStorage.removeItem('access_token')
-              localStorage.removeItem('refresh_token')
+              clearAuthStorage()
             }
           }
         }
+
+        if (error.response?.status === 401 && !isAuthRoute(originalRequest?.url)) {
+          clearAuthStorage()
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login'
+          }
+        }
+
         return Promise.reject(error)
       }
     )
@@ -313,28 +434,28 @@ class APIClient {
   }
 
   async login(data: LoginRequest): Promise<Token> {
-    const response = await this.client.post('/auth/login', data)
+    const response = await this.client.post('/auth/login', data, { timeout: 60000 })
     return response.data
   }
 
-  async getCurrentUser(): Promise<User> {
-    const response = await this.client.get('/auth/me')
+  async getCurrentUser(config?: AxiosRequestConfig): Promise<User> {
+    const response = await this.client.get('/auth/me', config)
     return response.data
   }
 
   // Cities endpoints
-  async getAllCities(): Promise<City[]> {
-    const response = await this.client.get('/cities/all')
+  async getAllCities(config?: AxiosRequestConfig): Promise<City[]> {
+    const response = await this.client.get('/cities/all', config)
     return response.data
   }
 
-  async getCity(city: string): Promise<City> {
-    const response = await this.client.get(`/cities/${city}`)
+  async getCity(city: string, config?: AxiosRequestConfig): Promise<City> {
+    const response = await this.client.get(`/cities/${city}`, config)
     return response.data
   }
 
-  async getCityCoordinates(): Promise<Record<string, { lat: number; lon: number }>> {
-    const response = await this.client.get('/cities/coordinates/all')
+  async getCityCoordinates(config?: AxiosRequestConfig): Promise<Record<string, { lat: number; lon: number }>> {
+    const response = await this.client.get('/cities/coordinates/all', config)
     return response.data
   }
 
@@ -349,8 +470,9 @@ class APIClient {
     return response.data
   }
 
-  async getHistoricalData(city: string, days: number = 7): Promise<EnvironmentalData[]> {
+  async getHistoricalData(city: string, days: number = 7, config?: AxiosRequestConfig): Promise<EnvironmentalData[]> {
     const response = await this.client.get(`/data/history/${city}`, {
+      ...config,
       params: { days },
     })
     return response.data
@@ -370,66 +492,67 @@ class APIClient {
     return response.data
   }
 
-  async getAllLatestData(): Promise<EnvironmentalData[]> {
-    const response = await this.client.get('/data/all/latest')
+  async getAllLatestData(config?: AxiosRequestConfig): Promise<EnvironmentalData[]> {
+    const response = await this.client.get('/data/all/latest', config)
     return response.data
   }
 
-  async getMLInsights(): Promise<MLInsights> {
-    const response = await this.client.get('/data/ml/insights')
+  async getMLInsights(config?: AxiosRequestConfig): Promise<MLInsights> {
+    const response = await this.client.get('/data/ml/insights', config)
     return response.data
   }
 
   // Machine learning endpoints
-  async trainAQIModel(): Promise<MLTrainingMetrics> {
-    const response = await this.client.post('/ml/train')
+  async trainAQIModel(config?: AxiosRequestConfig): Promise<MLTrainingMetrics> {
+    const response = await this.client.post('/ml/train', undefined, config)
     return response.data
   }
 
-  async getMLMetrics(): Promise<MLTrainingMetrics> {
-    const response = await this.client.get('/ml/metrics')
+  async getMLMetrics(config?: AxiosRequestConfig): Promise<MLTrainingMetrics> {
+    const response = await this.client.get('/ml/metrics', config)
     return response.data
   }
 
-  async getMLRunHistory(): Promise<MLModelRunSummary[]> {
-    const response = await this.client.get('/ml/runs')
+  async getMLRunHistory(config?: AxiosRequestConfig): Promise<MLModelRunSummary[]> {
+    const response = await this.client.get('/ml/runs', config)
     return response.data
   }
 
-  async getMLRun(runId: string): Promise<MLTrainingMetrics> {
-    const response = await this.client.get(`/ml/runs/${runId}`)
+  async getMLRun(runId: string, config?: AxiosRequestConfig): Promise<MLTrainingMetrics> {
+    const response = await this.client.get(`/ml/runs/${runId}`, config)
     return response.data
   }
 
-  async getMLDataQuality(): Promise<MLDataQuality> {
-    const response = await this.client.get('/ml/data-quality')
+  async getMLDataQuality(config?: AxiosRequestConfig): Promise<MLDataQuality> {
+    const response = await this.client.get('/ml/data-quality', config)
     return response.data
   }
 
-  async getFeatureImportance(): Promise<FeatureImportanceItem[]> {
-    const response = await this.client.get('/ml/feature-importance')
+  async getFeatureImportance(config?: AxiosRequestConfig): Promise<FeatureImportanceItem[]> {
+    const response = await this.client.get('/ml/feature-importance', config)
     return response.data
   }
 
-  async getEvaluationSamples(): Promise<EvaluationSample[]> {
-    const response = await this.client.get('/ml/evaluation-samples')
+  async getEvaluationSamples(config?: AxiosRequestConfig): Promise<EvaluationSample[]> {
+    const response = await this.client.get('/ml/evaluation-samples', config)
     return response.data
   }
 
-  async getAllForecasts(): Promise<AQIForecast[]> {
-    const response = await this.client.get('/ml/forecast/all')
+  async getAllForecasts(config?: AxiosRequestConfig): Promise<AQIForecast[]> {
+    const response = await this.client.get('/ml/forecast/all', config)
     return response.data
   }
 
-  async getTopForecastExplanations(limit: number = 5): Promise<AQIPredictionExplanation[]> {
+  async getTopForecastExplanations(limit: number = 5, config?: AxiosRequestConfig): Promise<AQIPredictionExplanation[]> {
     const response = await this.client.get('/ml/explain/top', {
+      ...config,
       params: { limit },
     })
     return response.data
   }
 
-  async checkAllMLForecastAlerts(): Promise<MLForecastAlert[]> {
-    const response = await this.client.post('/alerts/ml/check-all')
+  async checkAllMLForecastAlerts(config?: AxiosRequestConfig): Promise<MLForecastAlert[]> {
+    const response = await this.client.post('/alerts/ml/check-all', undefined, config)
     return response.data
   }
 
@@ -462,3 +585,4 @@ export type {
   MLForecastAlert,
 }
 export { getApiErrorMessage }
+export { getUserFromToken, mergeUserWithToken, saveAuthSnapshot, clearAuthStorage }

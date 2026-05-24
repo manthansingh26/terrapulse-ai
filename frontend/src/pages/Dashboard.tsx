@@ -27,7 +27,7 @@ import {
   TrendingUp,
   Wind,
 } from 'lucide-react'
-import { apiClient, City, MLInsights } from '@/services/api'
+import { apiClient, City, getApiErrorMessage, MLInsights } from '@/services/api'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import DataSourceNotice from '@/components/DataSourceNotice'
 import { FreshnessBadge } from '@/components/FreshnessBadge'
@@ -67,20 +67,25 @@ const Dashboard: React.FC = () => {
   useWebSocket(wsUrl)
 
   const loadDashboard = async (showLoader = false) => {
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 45000)
+    const config = { signal: controller.signal }
+
     try {
       if (showLoader) setIsLoading(true)
       setError(null)
       const [cityData, insights] = await Promise.all([
-        apiClient.getAllCities(),
-        apiClient.getMLInsights(),
+        apiClient.getAllCities(config),
+        apiClient.getMLInsights(config),
       ])
       setCities(cityData)
       setMlInsights(insights)
       setLastUpdated(new Date().toLocaleTimeString())
-    } catch (err) {
-      setError('Unable to load demo model intelligence. Check backend and database connection.')
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Unable to load demo model intelligence. Check backend and database connection.'))
       console.error(err)
     } finally {
+      window.clearTimeout(timeout)
       setIsLoading(false)
     }
   }
@@ -249,8 +254,19 @@ const Dashboard: React.FC = () => {
       </section>
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
-          {error}
+        <div className="flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p>{error}</p>
+            <p className="mt-1 text-xs font-normal text-red-600">
+              Render free tier may need 30-60s to wake after inactivity.
+            </p>
+          </div>
+          <button
+            onClick={() => void loadDashboard(true)}
+            className="w-fit rounded-md bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
+          >
+            Retry
+          </button>
         </div>
       )}
 

@@ -7,6 +7,8 @@ const API_DOCS_URL = API_BASE_URL.replace(/\/api\/?$/, '/api/docs')
 
 const Profile: React.FC = () => {
   const { user } = useAuth()
+  const displayName = user?.username || user?.sub || user?.name || user?.full_name || user?.email?.split('@')[0] || 'User'
+  const displayEmail = user?.email || 'Not available'
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A'
@@ -38,7 +40,7 @@ const Profile: React.FC = () => {
                 <User className="text-blue-600" size={20} />
                 <label className="block text-sm font-semibold text-gray-700">Username</label>
               </div>
-              <p className="bg-gray-100 px-4 py-3 rounded-lg text-gray-900 font-mono">{user?.username}</p>
+              <p className="bg-gray-100 px-4 py-3 rounded-lg text-gray-900 font-mono">{displayName}</p>
             </div>
 
             {/* Email */}
@@ -47,7 +49,7 @@ const Profile: React.FC = () => {
                 <Mail className="text-blue-600" size={20} />
                 <label className="block text-sm font-semibold text-gray-700">Email Address</label>
               </div>
-              <p className="bg-gray-100 px-4 py-3 rounded-lg text-gray-900">{user?.email}</p>
+              <p className="bg-gray-100 px-4 py-3 rounded-lg text-gray-900">{displayEmail}</p>
             </div>
 
             {/* Full Name */}
@@ -86,10 +88,10 @@ const Profile: React.FC = () => {
           {/* User Avatar */}
           <div className="card p-6 text-center">
             <div className="w-24 h-24 mx-auto bg-gradient-to-br from-blue-600 to-blue-900 rounded-full flex items-center justify-center">
-              <span className="text-4xl text-white font-bold">{(user?.username || 'U')[0].toUpperCase()}</span>
+              <span className="text-4xl text-white font-bold">{displayName[0].toUpperCase()}</span>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mt-4">{user?.full_name || user?.username}</h3>
-            <p className="text-gray-600 text-sm mt-1">@{user?.username}</p>
+            <h3 className="text-xl font-bold text-gray-900 mt-4">{user?.full_name || displayName}</h3>
+            <p className="text-gray-600 text-sm mt-1">@{displayName}</p>
           </div>
 
           {/* Quick Stats */}
