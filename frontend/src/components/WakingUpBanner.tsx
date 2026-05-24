@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 
 export function WakingUpBanner() {
   const [visible, setVisible] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const [failed, setFailed] = useState(false)
+  const location = useLocation()
+
+  // Don't show on login/register pages (they handle their own errors)
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register'
 
   useEffect(() => {
     const onWaking = (e: Event) => {
@@ -22,7 +27,7 @@ export function WakingUpBanner() {
     }
   }, [])
 
-  if (!visible) return null
+  if (!visible || isAuthPage) return null
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-yellow-50 border border-yellow-300 text-yellow-800 px-5 py-3 rounded-lg shadow-md text-sm flex items-center gap-3">
