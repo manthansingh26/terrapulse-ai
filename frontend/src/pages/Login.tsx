@@ -45,10 +45,40 @@ const Login: React.FC = () => {
     }
   }
 
-  const handleTryDemo = () => {
+  const handleTryDemo = async (e: React.MouseEvent) => {
+    e.preventDefault()
     setUsername('demo')
     setPassword('demo123')
     setError('')
+    
+    // Auto-submit after a brief delay to ensure state is updated
+    setTimeout(async () => {
+      try {
+        setIsLoading(true)
+        await login('demo', 'demo123')
+        navigate('/')
+      } catch (err: any) {
+        setIsLoading(false)
+        const isNetworkError = !err.response
+        const isColdStart = [502, 503, 504].includes(err.response?.status)
+        
+        if (isNetworkError || isColdStart) {
+          setError(
+            'Server is still waking up. Please wait 30 seconds and try again, ' +
+            'or click "Try Demo" to auto-retry.'
+          )
+        } else {
+          setError(err.response?.data?.detail || 'Demo login failed. Please try again.')
+        }
+      }
+    }, 100)
+  }
+
+  const handleRetry = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    // Create a synthetic form event
+    const form = { preventDefault: () => {} } as React.FormEvent
+    await handleSubmit(form)
   }
 
   return (
@@ -65,16 +95,16 @@ const Login: React.FC = () => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-                <div className="flex items-start gap-2">
-                  <span className="text-red-500 mt-0.5">⚠</span>
+              <div className="rounded-lg bg-red-50 border-l-4 border-red-500 px-4 py-3 text-sm text-red-800">
+                <div className="flex items-start gap-3">
+                  <span className="text-red-600 text-lg mt-0.5 flex-shrink-0">⚠</span>
                   <div className="flex-1">
-                    <p>{error}</p>
+                    <p className="font-medium">{error}</p>
                     {error.includes('waking up') && (
                       <button
                         type="button"
-                        onClick={handleSubmit}
-                        className="mt-2 text-blue-600 underline text-xs font-medium"
+                        onClick={handleRetry}
+                        className="mt-2 inline-block text-red-600 hover:text-red-700 underline text-xs font-semibold"
                       >
                         Try again now →
                       </button>
@@ -133,9 +163,10 @@ const Login: React.FC = () => {
             <button
               type="button"
               onClick={handleTryDemo}
-              className="w-full border border-gray-400 text-gray-600 hover:bg-gray-100 rounded px-4 py-2 text-sm font-medium transition-colors"
+              disabled={isLoading}
+              className="w-full border border-gray-400 text-gray-600 hover:bg-gray-100 rounded px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Try Demo
+              {isLoading ? 'Trying demo...' : 'Try Demo'}
             </button>
           </form>
 
