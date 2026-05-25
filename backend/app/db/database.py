@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine, text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import QueuePool
 import logging
@@ -38,10 +38,7 @@ engine = create_engine(database_url, **engine_kwargs)
 
 # Create session factory
 SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine,
-    expire_on_commit=False
+    autocommit=False, autoflush=False, bind=engine, expire_on_commit=False
 )
 
 # Declarative base for models
@@ -76,10 +73,11 @@ async def test_connection_async() -> dict:
             connection.execute(text("SELECT 1"))
             return {
                 "status": "connected",
-                "database": settings.DATABASE_URL.split("@")[1] if "@" in settings.DATABASE_URL else "unknown"
+                "database": (
+                    settings.DATABASE_URL.split("@")[1]
+                    if "@" in settings.DATABASE_URL
+                    else "unknown"
+                ),
             }
     except Exception as e:
-        return {
-            "status": "disconnected",
-            "error": str(e)
-        }
+        return {"status": "disconnected", "error": str(e)}

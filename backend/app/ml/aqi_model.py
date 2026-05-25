@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import math
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from random import Random
 from typing import Iterable
@@ -18,7 +18,6 @@ from sklearn.model_selection import cross_val_score
 
 from app.api.endpoints.cities import CITY_COORDINATES
 from app.models.models import EnvironmentalData
-
 
 FEATURE_NAMES = [
     "current_aqi",
@@ -124,8 +123,10 @@ def aqi_risk_level(aqi: int) -> str:
     return "Good"
 
 
-def make_feature_vector(record: EnvironmentalData, codes: dict[str, int]) -> list[float]:
-    timestamp = record.timestamp or datetime.utcnow()
+def make_feature_vector(
+    record: EnvironmentalData, codes: dict[str, int]
+) -> list[float]:
+    timestamp = record.timestamp or datetime.now(timezone.utc)
     return [
         float(record.aqi or 0),
         float(record.co2 or 420),
@@ -152,7 +153,7 @@ def ensure_synthetic_history(db, days: int = 45) -> int:
         return 0
 
     rng = Random(2601)
-    now = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+    now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
     inserted = 0
 
     for city_index, city in enumerate(CITY_COORDINATES):
@@ -166,7 +167,9 @@ def ensure_synthetic_history(db, days: int = 45) -> int:
             weekend_relief = -12 if ts.weekday() >= 5 else 0
             weather_noise = rng.uniform(-10, 10)
 
-            temperature = 24 + city_index % 9 + max(0, daily_cycle) * 7 + rng.uniform(-1.8, 1.8)
+            temperature = (
+                24 + city_index % 9 + max(0, daily_cycle) * 7 + rng.uniform(-1.8, 1.8)
+            )
             humidity = 62 - daily_cycle * 12 + rng.uniform(-6, 6)
             wind_speed = max(1.0, 4.8 + weekly_cycle * 1.5 + rng.uniform(-1.2, 1.2))
             rainfall = max(0, rng.gauss(0.4, 1.0)) if humidity > 70 else 0
@@ -202,7 +205,9 @@ def ensure_synthetic_history(db, days: int = 45) -> int:
     return inserted
 
 
-def build_supervised_examples(records: Iterable[EnvironmentalData]) -> SupervisedDataset:
+def build_supervised_examples(
+    records: Iterable[EnvironmentalData],
+) -> SupervisedDataset:
     codes = city_code_map()
     by_city: dict[str, list[EnvironmentalData]] = {}
     for record in records:
@@ -233,7 +238,9 @@ def build_supervised_examples(records: Iterable[EnvironmentalData]) -> Supervise
     )
 
 
-def build_supervised_dataset(records: Iterable[EnvironmentalData]) -> tuple[np.ndarray, np.ndarray]:
+def build_supervised_dataset(
+    records: Iterable[EnvironmentalData],
+) -> tuple[np.ndarray, np.ndarray]:
     dataset = build_supervised_examples(records)
     return dataset.features, dataset.targets
 
@@ -241,7 +248,9 @@ def build_supervised_dataset(records: Iterable[EnvironmentalData]) -> tuple[np.n
 def temporal_train_test_split(
     dataset: SupervisedDataset,
     test_size: float = 0.2,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, list[datetime], list[datetime]]:
+) -> tuple[
+    np.ndarray, np.ndarray, np.ndarray, np.ndarray, list[datetime], list[datetime]
+]:
     if not 0 < test_size < 1:
         raise ValueError("test_size must be between 0 and 1")
 
@@ -319,7 +328,9 @@ def save_model_run(
     run_dir = RUNS_DIR / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    (run_dir / "metrics.json").write_text(json.dumps(run_metrics, indent=2), encoding="utf-8")
+    (run_dir / "metrics.json").write_text(
+        json.dumps(run_metrics, indent=2), encoding="utf-8"
+    )
     (run_dir / "feature_importance.json").write_text(
         json.dumps(feature_importance, indent=2),
         encoding="utf-8",
@@ -331,7 +342,9 @@ def save_model_run(
 
     history = [entry for entry in load_run_history() if entry.get("run_id") != run_id]
     history.insert(0, run_summary)
-    RUN_HISTORY_PATH.write_text(json.dumps(history[:MAX_RUN_HISTORY], indent=2), encoding="utf-8")
+    RUN_HISTORY_PATH.write_text(
+        json.dumps(history[:MAX_RUN_HISTORY], indent=2), encoding="utf-8"
+    )
     LATEST_RUN_PATH.write_text(json.dumps(run_summary, indent=2), encoding="utf-8")
     return run_metrics
 
@@ -339,6 +352,7 @@ def save_model_run(
 # ---------------------------------------------------------------------------
 # Model comparison: train all candidates, pick best, save comparison report
 # ---------------------------------------------------------------------------
+
 
 def _run_model_comparison(
     x_train: np.ndarray,
@@ -401,9 +415,15 @@ def _run_model_comparison(
 def train_model(db) -> dict:
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     inserted = ensure_synthetic_history(db)
-    records = db.query(EnvironmentalData).order_by(EnvironmentalData.city, EnvironmentalData.timestamp).all()
+    records = (
+        db.query(EnvironmentalData)
+        .order_by(EnvironmentalData.city, EnvironmentalData.timestamp)
+        .all()
+    )
     dataset = build_supervised_examples(records)
-    x_train, x_test, y_train, y_test, train_timestamps, test_timestamps = temporal_train_test_split(dataset)
+    x_train, x_test, y_train, y_test, train_timestamps, test_timestamps = (
+        temporal_train_test_split(dataset)
+    )
 
     # ── Run model comparison ────────────────────────────────────
     best_model, comparison = _run_model_comparison(x_train, y_train, x_test, y_test)
@@ -416,7 +436,7 @@ def train_model(db) -> dict:
     metrics = {
         "model_name": best_entry["model_name"],
         "model_version": "v2.0-autoselect",
-        "trained_at": datetime.utcnow().isoformat(),
+        "trained_at": datetime.now(timezone.utc).isoformat(),
         "training_rows": int(len(x_train)),
         "test_rows": int(len(x_test)),
         "synthetic_rows_inserted": inserted,
@@ -459,7 +479,9 @@ def train_model(db) -> dict:
     )
 
     sample_count = min(80, len(y_test))
-    sample_indexes = np.linspace(0, len(y_test) - 1, sample_count, dtype=int) if sample_count else []
+    sample_indexes = (
+        np.linspace(0, len(y_test) - 1, sample_count, dtype=int) if sample_count else []
+    )
     evaluation_samples = [
         {
             "sample": index + 1,
@@ -472,14 +494,19 @@ def train_model(db) -> dict:
 
     metrics = save_model_run(metrics, feature_importance, evaluation_samples)
     METRICS_PATH.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
-    FEATURE_IMPORTANCE_PATH.write_text(json.dumps(feature_importance, indent=2), encoding="utf-8")
-    EVALUATION_SAMPLES_PATH.write_text(json.dumps(evaluation_samples, indent=2), encoding="utf-8")
+    FEATURE_IMPORTANCE_PATH.write_text(
+        json.dumps(feature_importance, indent=2), encoding="utf-8"
+    )
+    EVALUATION_SAMPLES_PATH.write_text(
+        json.dumps(evaluation_samples, indent=2), encoding="utf-8"
+    )
     return metrics
 
 
 # ---------------------------------------------------------------------------
 # Loaders
 # ---------------------------------------------------------------------------
+
 
 def load_model() -> dict:
     if not MODEL_PATH.exists():
@@ -508,7 +535,9 @@ def load_evaluation_samples() -> list[dict]:
 def load_model_comparison() -> list[dict]:
     """Load the model comparison report from the latest training run."""
     if not MODEL_COMPARISON_PATH.exists():
-        raise FileNotFoundError("Model comparison is not available. Run POST /api/ml/train first.")
+        raise FileNotFoundError(
+            "Model comparison is not available. Run POST /api/ml/train first."
+        )
     return json.loads(MODEL_COMPARISON_PATH.read_text(encoding="utf-8"))
 
 
@@ -516,12 +545,19 @@ def load_model_comparison() -> list[dict]:
 # Prediction explanation helpers
 # ---------------------------------------------------------------------------
 
+
 def factor_direction(feature: str, value: float) -> tuple[str, str]:
     baseline = FEATURE_BASELINES.get(feature, 0)
     if feature in {"current_aqi", "co2", "temperature"}:
         if value > baseline:
-            return "increases_risk", f"{FEATURE_LABELS[feature]} is above the training baseline"
-        return "reduces_risk", f"{FEATURE_LABELS[feature]} is below the training baseline"
+            return (
+                "increases_risk",
+                f"{FEATURE_LABELS[feature]} is above the training baseline",
+            )
+        return (
+            "reduces_risk",
+            f"{FEATURE_LABELS[feature]} is below the training baseline",
+        )
 
     if feature == "humidity":
         if value < 45:
@@ -542,12 +578,18 @@ def factor_direction(feature: str, value: float) -> tuple[str, str]:
 
     if feature == "hour":
         if int(value) in {8, 9, 18, 19, 20}:
-            return "increases_risk", "The timestamp falls in a typical traffic peak window"
+            return (
+                "increases_risk",
+                "The timestamp falls in a typical traffic peak window",
+            )
         return "neutral", "The timestamp is outside the strongest traffic peak windows"
 
     if feature == "day_of_week":
         if int(value) < 5:
-            return "increases_risk", "Weekday activity can raise traffic and industrial exposure"
+            return (
+                "increases_risk",
+                "Weekday activity can raise traffic and industrial exposure",
+            )
         return "reduces_risk", "Weekend timing can lower traffic-related exposure"
 
     if feature == "month":
@@ -558,7 +600,10 @@ def factor_direction(feature: str, value: float) -> tuple[str, str]:
 
 def explain_record(record: EnvironmentalData, top_n: int = 4) -> dict:
     prediction = predict_record(record)
-    importance = {item["feature"]: max(float(item["importance"]), 0) for item in load_feature_importance()}
+    importance = {
+        item["feature"]: max(float(item["importance"]), 0)
+        for item in load_feature_importance()
+    }
     values = dict(zip(FEATURE_NAMES, make_feature_vector(record, city_code_map())))
     ranked_features = sorted(
         FEATURE_NAMES,
@@ -610,5 +655,5 @@ def predict_record(record: EnvironmentalData) -> dict:
         "change": delta,
         "risk_level": aqi_risk_level(predicted),
         "confidence": round(confidence, 2),
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
     }

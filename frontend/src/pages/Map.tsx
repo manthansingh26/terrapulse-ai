@@ -149,27 +149,28 @@ const Map: React.FC = () => {
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('all')
   const [lastUpdated, setLastUpdated] = useState('')
 
-  const fetchCities = async () => {
-    const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 45000)
-
+  const fetchCities = async (signal?: AbortSignal) => {
     try {
       setIsLoading(true)
       setError(null)
-      const data = await apiClient.getAllCities({ signal: controller.signal })
+      const config = signal ? { signal } : {}
+      const data = await apiClient.getAllCities(config)
+      if (signal?.aborted) return
       setCities(data)
       setLastUpdated(new Date().toLocaleTimeString())
     } catch (err: unknown) {
+      if (signal?.aborted) return
       setError(getApiErrorMessage(err, 'Failed to load map intelligence. Check backend and database connection.'))
       console.error(err)
     } finally {
-      window.clearTimeout(timeout)
-      setIsLoading(false)
+      if (!signal?.aborted) setIsLoading(false)
     }
   }
 
   useEffect(() => {
-    void fetchCities()
+    const controller = new AbortController()
+    void fetchCities(controller.signal)
+    return () => controller.abort()
   }, [])
 
   const filteredCities = useMemo(

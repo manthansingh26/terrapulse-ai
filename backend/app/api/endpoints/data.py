@@ -1,15 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 
 from app.db.database import get_db
 from app.models.models import EnvironmentalData, AirQualityHistory, User, AlertHistory
 from app.schemas.schemas import (
-    EnvironmentalDataResponse, EnvironmentalDataCreate,
-    AirQualityHistoryResponse, CityDataResponse, CityStatistics,
-    CityRiskInsight, MLInsightsResponse
+    EnvironmentalDataResponse,
+    EnvironmentalDataCreate,
+    AirQualityHistoryResponse,
+    CityStatistics,
+    CityRiskInsight,
+    MLInsightsResponse,
 )
 from app.core.security import get_current_user
 from app.core.config import get_settings
@@ -40,19 +43,21 @@ def build_recommendation(risk_level: str, city: str) -> str:
     if risk_level == "High":
         return f"Increase monitoring frequency in {city} and notify sensitive groups."
     if risk_level == "Moderate":
-        return f"Keep {city} under observation and compare readings with weather changes."
+        return (
+            f"Keep {city} under observation and compare readings with weather changes."
+        )
     return f"Maintain baseline monitoring for {city}."
 
 
 @router.post(
     "/save",
     response_model=EnvironmentalDataResponse,
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
 )
 async def save_environmental_data(
     data: EnvironmentalDataCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Save environmental data and trigger alert if AQI > 200"""
 
@@ -63,7 +68,7 @@ async def save_environmental_data(
         temperature=data.temperature,
         humidity=data.humidity,
         wind_speed=data.wind_speed,
-        rainfall=data.rainfall
+        rainfall=data.rainfall,
     )
 
     db.add(env_data)
@@ -72,17 +77,19 @@ async def save_environmental_data(
 
     # Check if AQI alert should be triggered
     if data.aqi and data.aqi > settings.AQI_ALERT_THRESHOLD:
-        one_hour_ago = datetime.utcnow() - timedelta(hours=1)
-        recent_alert = db.query(AlertHistory).filter(
-            AlertHistory.city == data.city,
-            AlertHistory.last_alert_time >= one_hour_ago
-        ).first()
+        one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+        recent_alert = (
+            db.query(AlertHistory)
+            .filter(
+                AlertHistory.city == data.city,
+                AlertHistory.last_alert_time >= one_hour_ago,
+            )
+            .first()
+        )
 
         if not recent_alert:
             email_sent = send_alert_email(
-                city=data.city,
-                aqi_value=data.aqi,
-                recipient=settings.ALERT_EMAIL
+                city=data.city, aqi_value=data.aqi, recipient=settings.ALERT_EMAIL
             )
 
             alert = AlertHistory(
@@ -91,31 +98,33 @@ async def save_environmental_data(
                 alert_type="high_aqi",
                 email_sent=email_sent,
                 email_recipient=settings.ALERT_EMAIL,
-                last_alert_time=datetime.utcnow()
+                last_alert_time=datetime.now(timezone.utc),
             )
             db.add(alert)
             db.commit()
 
-            logger.info(f"🚨 AQI Alert: {data.city} AQI={data.aqi}, email_sent={email_sent}")
+            logger.info(
+                f"🚨 AQI Alert: {data.city} AQI={data.aqi}, email_sent={email_sent}"
+            )
 
     return env_data
 
 
 @router.get("/latest/{city}", response_model=EnvironmentalDataResponse)
-async def get_latest_data(
-    city: str,
-    db: Session = Depends(get_db)
-):
+async def get_latest_data(city: str, db: Session = Depends(get_db)):
     """Get latest environmental data for a city"""
 
-    data = db.query(EnvironmentalData).filter(
-        EnvironmentalData.city == city
-    ).order_by(EnvironmentalData.timestamp.desc()).first()
+    data = (
+        db.query(EnvironmentalData)
+        .filter(EnvironmentalData.city == city)
+        .order_by(EnvironmentalData.timestamp.desc())
+        .first()
+    )
 
     if not data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No data found for city: {city}"
+            detail=f"No data found for city: {city}",
         )
 
     return data
@@ -123,23 +132,25 @@ async def get_latest_data(
 
 @router.get("/history/{city}", response_model=list[EnvironmentalDataResponse])
 async def get_historical_data(
-    city: str,
-    days: int = Query(7, ge=1, le=365),
-    db: Session = Depends(get_db)
+    city: str, days: int = Query(7, ge=1, le=365), db: Session = Depends(get_db)
 ):
     """Get historical environmental data for a city"""
 
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
-    data = db.query(EnvironmentalData).filter(
-        EnvironmentalData.city == city,
-        EnvironmentalData.timestamp >= start_date
-    ).order_by(EnvironmentalData.timestamp.desc()).all()
+    data = (
+        db.query(EnvironmentalData)
+        .filter(
+            EnvironmentalData.city == city, EnvironmentalData.timestamp >= start_date
+        )
+        .order_by(EnvironmentalData.timestamp.desc())
+        .all()
+    )
 
     if not data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No historical data found for city: {city}"
+            detail=f"No historical data found for city: {city}",
         )
 
     return data
@@ -147,23 +158,24 @@ async def get_historical_data(
 
 @router.get("/statistics/{city}", response_model=CityStatistics)
 async def get_city_statistics(
-    city: str,
-    days: int = Query(7, ge=1, le=365),
-    db: Session = Depends(get_db)
+    city: str, days: int = Query(7, ge=1, le=365), db: Session = Depends(get_db)
 ):
     """Get city statistics"""
 
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
-    records = db.query(EnvironmentalData).filter(
-        EnvironmentalData.city == city,
-        EnvironmentalData.timestamp >= start_date
-    ).all()
+    records = (
+        db.query(EnvironmentalData)
+        .filter(
+            EnvironmentalData.city == city, EnvironmentalData.timestamp >= start_date
+        )
+        .all()
+    )
 
     if not records:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No data found for city: {city}"
+            detail=f"No data found for city: {city}",
         )
 
     # Calculate statistics
@@ -177,9 +189,11 @@ async def get_city_statistics(
         max_aqi=max(aqi_values) if aqi_values else 0,
         min_aqi=min(aqi_values) if aqi_values else 0,
         avg_temperature=sum(temp_values) / len(temp_values) if temp_values else 0,
-        avg_humidity=sum(humidity_values) / len(humidity_values) if humidity_values else 0,
+        avg_humidity=(
+            sum(humidity_values) / len(humidity_values) if humidity_values else 0
+        ),
         data_points=len(records),
-        period_days=days
+        period_days=days,
     )
 
     return stats
@@ -187,67 +201,81 @@ async def get_city_statistics(
 
 @router.get("/air-quality/{city}", response_model=list[AirQualityHistoryResponse])
 async def get_air_quality_history(
-    city: str,
-    days: int = Query(7, ge=1, le=365),
-    db: Session = Depends(get_db)
+    city: str, days: int = Query(7, ge=1, le=365), db: Session = Depends(get_db)
 ):
     """Get air quality history for a city"""
 
-    start_date = datetime.utcnow() - timedelta(days=days)
+    start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
-    data = db.query(AirQualityHistory).filter(
-        AirQualityHistory.city == city,
-        AirQualityHistory.timestamp >= start_date
-    ).order_by(AirQualityHistory.timestamp.desc()).all()
+    data = (
+        db.query(AirQualityHistory)
+        .filter(
+            AirQualityHistory.city == city, AirQualityHistory.timestamp >= start_date
+        )
+        .order_by(AirQualityHistory.timestamp.desc())
+        .all()
+    )
 
     return data
 
 
 @router.get("/all/latest", response_model=list[EnvironmentalDataResponse])
-async def get_all_latest(
-    db: Session = Depends(get_db)
-):
+async def get_all_latest(db: Session = Depends(get_db)):
     """Get latest data for all cities"""
 
     # Subquery to get latest timestamp per city
-    subquery = db.query(
-        EnvironmentalData.city,
-        func.max(EnvironmentalData.timestamp).label("max_timestamp")
-    ).group_by(EnvironmentalData.city).subquery()
+    subquery = (
+        db.query(
+            EnvironmentalData.city,
+            func.max(EnvironmentalData.timestamp).label("max_timestamp"),
+        )
+        .group_by(EnvironmentalData.city)
+        .subquery()
+    )
 
     # Join to get the actual records
-    data = db.query(EnvironmentalData).filter(
-        and_(
-            EnvironmentalData.city == subquery.c.city,
-            EnvironmentalData.timestamp == subquery.c.max_timestamp
+    data = (
+        db.query(EnvironmentalData)
+        .filter(
+            and_(
+                EnvironmentalData.city == subquery.c.city,
+                EnvironmentalData.timestamp == subquery.c.max_timestamp,
+            )
         )
-    ).all()
+        .all()
+    )
 
     return data
 
 
 @router.get("/ml/insights", response_model=MLInsightsResponse)
-async def get_ml_insights(
-    db: Session = Depends(get_db)
-):
+async def get_ml_insights(db: Session = Depends(get_db)):
     """Generate trained-model AQI forecasts and risk scores from latest city readings."""
 
-    subquery = db.query(
-        EnvironmentalData.city,
-        func.max(EnvironmentalData.timestamp).label("max_timestamp")
-    ).group_by(EnvironmentalData.city).subquery()
-
-    latest_records = db.query(EnvironmentalData).filter(
-        and_(
-            EnvironmentalData.city == subquery.c.city,
-            EnvironmentalData.timestamp == subquery.c.max_timestamp
+    subquery = (
+        db.query(
+            EnvironmentalData.city,
+            func.max(EnvironmentalData.timestamp).label("max_timestamp"),
         )
-    ).all()
+        .group_by(EnvironmentalData.city)
+        .subquery()
+    )
+
+    latest_records = (
+        db.query(EnvironmentalData)
+        .filter(
+            and_(
+                EnvironmentalData.city == subquery.c.city,
+                EnvironmentalData.timestamp == subquery.c.max_timestamp,
+            )
+        )
+        .all()
+    )
 
     if not latest_records:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No environmental data available for ML insights"
+            detail="No environmental data available for ML insights",
         )
 
     insights: list[CityRiskInsight] = []
@@ -257,7 +285,7 @@ async def get_ml_insights(
         except FileNotFoundError as exc:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"{exc}. Run POST /api/ml/train first."
+                detail=f"{exc}. Run POST /api/ml/train first.",
             ) from exc
 
         current_aqi = prediction["current_aqi"]
@@ -274,7 +302,7 @@ async def get_ml_insights(
                 risk_score=risk_score,
                 risk_level=risk_level,
                 confidence=round(confidence, 2),
-                recommendation=build_recommendation(risk_level, record.city)
+                recommendation=build_recommendation(risk_level, record.city),
             )
         )
 
@@ -282,21 +310,27 @@ async def get_ml_insights(
     avg_current = sum(item.current_aqi for item in insights) / len(insights)
     avg_predicted = sum(item.predicted_aqi_24h for item in insights) / len(insights)
     avg_confidence = sum(item.confidence for item in insights) / len(insights)
-    high_risk_count = len([item for item in insights if item.risk_level in {"High", "Critical"}])
-    trend = "rising" if avg_predicted > avg_current + 5 else "improving" if avg_predicted < avg_current - 5 else "stable"
+    high_risk_count = len(
+        [item for item in insights if item.risk_level in {"High", "Critical"}]
+    )
+    trend = (
+        "rising"
+        if avg_predicted > avg_current + 5
+        else "improving" if avg_predicted < avg_current - 5 else "stable"
+    )
     metrics = load_metrics()
 
     return MLInsightsResponse(
         model_name=metrics["model_name"],
         model_version=metrics["model_version"],
-        generated_at=datetime.utcnow(),
+        generated_at=datetime.now(timezone.utc),
         monitored_cities=len(insights),
         avg_current_aqi=round(avg_current, 1),
         avg_predicted_aqi_24h=round(avg_predicted, 1),
         high_risk_cities=high_risk_count,
         confidence=round(avg_confidence, 2),
         trend=trend,
-        insights=insights
+        insights=insights,
     )
 
 
@@ -304,29 +338,32 @@ async def get_ml_insights(
 async def clear_old_data(
     days: int = Query(30, ge=1),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Clear data older than specified days (admin only)"""
 
     if not current_user.is_admin:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
         )
 
-    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
-    deleted_env = db.query(EnvironmentalData).filter(
-        EnvironmentalData.timestamp < cutoff_date
-    ).delete()
+    deleted_env = (
+        db.query(EnvironmentalData)
+        .filter(EnvironmentalData.timestamp < cutoff_date)
+        .delete()
+    )
 
-    deleted_air = db.query(AirQualityHistory).filter(
-        AirQualityHistory.timestamp < cutoff_date
-    ).delete()
+    deleted_air = (
+        db.query(AirQualityHistory)
+        .filter(AirQualityHistory.timestamp < cutoff_date)
+        .delete()
+    )
 
     db.commit()
 
     return {
         "deleted_environmental_records": deleted_env,
-        "deleted_air_quality_records": deleted_air
+        "deleted_air_quality_records": deleted_air,
     }

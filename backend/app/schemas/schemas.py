@@ -1,45 +1,47 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
 
-
 # ==================== Auth Schemas ====================
+
 
 class UserRegister(BaseModel):
     """User registration schema"""
+
     email: EmailStr
     username: str = Field(..., min_length=3, max_length=50)
     full_name: Optional[str] = None
     password: str = Field(..., min_length=8, max_length=100)
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "email": "user@example.com",
                 "username": "johndoe",
                 "full_name": "John Doe",
-                "password": "securepassword123"
+                "password": "securepassword123",
             }
         }
+    )
 
 
 class UserLogin(BaseModel):
     """User login schema - accepts email or username"""
+
     email: Optional[EmailStr] = None
     username: Optional[str] = None
     password: str
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "email": "user@example.com",
-                "password": "securepassword123"
-            }
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {"email": "user@example.com", "password": "securepassword123"}
         }
+    )
 
 
 class Token(BaseModel):
     """Token response schema"""
+
     access_token: str
     refresh_token: Optional[str] = None
     token_type: str = "bearer"
@@ -48,12 +50,14 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     """Token data schema"""
+
     username: Optional[str] = None
     user_id: Optional[int] = None
 
 
 class UserResponse(BaseModel):
     """User response schema"""
+
     id: int
     email: str
     username: str
@@ -62,14 +66,15 @@ class UserResponse(BaseModel):
     is_admin: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ==================== Environmental Data Schemas ====================
 
+
 class EnvironmentalDataBase(BaseModel):
     """Base environmental data schema"""
+
     city: str
     aqi: Optional[int] = None
     co2: Optional[float] = None
@@ -81,22 +86,25 @@ class EnvironmentalDataBase(BaseModel):
 
 class EnvironmentalDataCreate(EnvironmentalDataBase):
     """Create environmental data schema"""
+
     pass
 
 
 class EnvironmentalDataResponse(EnvironmentalDataBase):
     """Environmental data response schema"""
+
     id: int
     timestamp: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ==================== Air Quality Schemas ====================
 
+
 class AirQualityHistoryBase(BaseModel):
     """Base air quality history schema"""
+
     city: str
     aqi: Optional[int] = None
     co2: Optional[float] = None
@@ -106,22 +114,25 @@ class AirQualityHistoryBase(BaseModel):
 
 class AirQualityHistoryCreate(AirQualityHistoryBase):
     """Create air quality history schema"""
+
     pass
 
 
 class AirQualityHistoryResponse(AirQualityHistoryBase):
     """Air quality history response schema"""
+
     id: int
     timestamp: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ==================== City Data Schemas ====================
 
+
 class CityDataResponse(BaseModel):
     """City data response schema"""
+
     city: str
     latitude: float
     longitude: float
@@ -132,8 +143,8 @@ class CityDataResponse(BaseModel):
     aqi_color: str
     last_updated: Optional[datetime] = None
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "city": "Ahmedabad",
                 "latitude": 23.0225,
@@ -143,15 +154,18 @@ class CityDataResponse(BaseModel):
                 "current_humidity": 65,
                 "aqi_status": "Unhealthy for Sensitive Groups",
                 "aqi_color": "#FF7F50",
-                "last_updated": "2024-01-01T12:00:00"
+                "last_updated": "2024-01-01T12:00:00",
             }
         }
+    )
 
 
 # ==================== Statistics Schemas ====================
 
+
 class CityStatistics(BaseModel):
     """City statistics schema"""
+
     city: str
     avg_aqi: float
     max_aqi: int
@@ -161,12 +175,12 @@ class CityStatistics(BaseModel):
     data_points: int
     period_days: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CityRiskInsight(BaseModel):
     """ML-style risk insight for a city."""
+
     city: str
     current_aqi: int
     predicted_aqi_24h: int
@@ -178,6 +192,7 @@ class CityRiskInsight(BaseModel):
 
 class MLInsightsResponse(BaseModel):
     """Portfolio-ready ML insights response for the dashboard."""
+
     model_name: str
     model_version: str
     generated_at: datetime
@@ -192,6 +207,7 @@ class MLInsightsResponse(BaseModel):
 
 class AQIForecastResponse(BaseModel):
     """Prediction response from the trained AQI model."""
+
     city: str
     current_aqi: int
     predicted_aqi_24h: int
@@ -201,12 +217,14 @@ class AQIForecastResponse(BaseModel):
     generated_at: datetime
     aqi_lower: Optional[float] = None  # Lower confidence bound (mean - 1σ)
     aqi_upper: Optional[float] = None  # Upper confidence bound (mean + 1σ)
-    data_sufficiency: Optional[dict] = None  # Data sufficiency check: reading_count, required_readings, is_sufficient, warning
-
+    data_sufficiency: Optional[dict] = (
+        None  # Data sufficiency check: reading_count, required_readings, is_sufficient, warning
+    )
 
 
 class PredictionExplanationFactor(BaseModel):
     """Single factor contributing to a prediction explanation."""
+
     feature: str
     label: str
     value: float
@@ -217,12 +235,14 @@ class PredictionExplanationFactor(BaseModel):
 
 class AQIPredictionExplanationResponse(AQIForecastResponse):
     """Forecast response with model explanation factors."""
+
     explanation_summary: str
     factors: list[PredictionExplanationFactor]
 
 
 class MLTrainingResponse(BaseModel):
     """Model training result."""
+
     run_id: Optional[str] = None
     model_name: str
     model_version: str
@@ -245,6 +265,7 @@ class MLTrainingResponse(BaseModel):
 
 class MLRunSummary(BaseModel):
     """Summary of a versioned ML training run."""
+
     run_id: str
     model_name: str
     model_version: str
@@ -260,6 +281,7 @@ class MLRunSummary(BaseModel):
 
 class MLDataQualityResponse(BaseModel):
     """Training dataset quality summary for ML operations."""
+
     total_records: int
     monitored_cities: int
     latest_timestamp: Optional[datetime] = None
@@ -273,12 +295,14 @@ class MLDataQualityResponse(BaseModel):
 
 class FeatureImportanceItem(BaseModel):
     """Feature importance row."""
+
     feature: str
     importance: float
 
 
 class EvaluationSampleItem(BaseModel):
     """Predicted-vs-actual evaluation row from the model test split."""
+
     sample: int
     actual_aqi: int
     predicted_aqi: int
@@ -287,6 +311,7 @@ class EvaluationSampleItem(BaseModel):
 
 class ModelComparisonItem(BaseModel):
     """Comparison metrics for a single candidate model."""
+
     model_name: str
     test_mae: float
     test_rmse: float
@@ -298,48 +323,52 @@ class ModelComparisonItem(BaseModel):
 
 # ==================== Health & Status Schemas ====================
 
+
 class HealthResponse(BaseModel):
     """Health check response"""
+
     status: str
     version: str
     database: dict
     timestamp: datetime
+    components: Optional[dict] = None
 
 
 class ErrorResponse(BaseModel):
     """Error response schema"""
+
     error: str
     detail: Optional[str] = None
     status_code: int
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "error": "Not Found",
                 "detail": "Resource not found",
-                "status_code": 404
+                "status_code": 404,
             }
         }
+    )
 
 
 # ==================== Alert Schemas ====================
 
+
 class AlertCheckRequest(BaseModel):
     """Request to check and send alerts"""
+
     city: str
     aqi_value: int
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "city": "Ahmedabad",
-                "aqi_value": 250
-            }
-        }
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"city": "Ahmedabad", "aqi_value": 250}}
+    )
 
 
 class AlertHistoryResponse(BaseModel):
     """Alert history response schema"""
+
     id: int
     city: str
     aqi_value: int
@@ -348,12 +377,12 @@ class AlertHistoryResponse(BaseModel):
     email_recipient: Optional[str] = None
     last_alert_time: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AlertResponse(BaseModel):
     """Alert check response schema"""
+
     alert_triggered: bool
     email_sent: bool
     city: str
@@ -364,6 +393,7 @@ class AlertResponse(BaseModel):
 
 class MLForecastAlertResponse(BaseModel):
     """ML-based early warning alert response."""
+
     alert_triggered: bool
     email_sent: bool
     city: str
@@ -376,14 +406,16 @@ class MLForecastAlertResponse(BaseModel):
 
 class MultipleAlertsRequest(BaseModel):
     """Request to check multiple cities"""
+
     cities_data: list[dict]
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "cities_data": [
                     {"city": "Ahmedabad", "aqi_value": 250},
-                    {"city": "Mumbai", "aqi_value": 180}
+                    {"city": "Mumbai", "aqi_value": 180},
                 ]
             }
         }
+    )

@@ -1,27 +1,63 @@
-from fastapi import FastAPI, Depends, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.core.config import get_settings
 from app.core.limiter import limiter
-from app.db.database import engine, Base, SessionLocal, test_connection_async, test_connection
-from app.models.models import User, EnvironmentalData, AirQualityHistory, APILog, AlertHistory
+from app.db.database import (
+    engine,
+    Base,
+    SessionLocal,
+    test_connection_async,
+    test_connection,
+)
+from app.models.models import (
+    User,
+    EnvironmentalData,
+)
 from app.api.endpoints import auth, data, cities, websocket, alerts, ml
 from app.schemas.schemas import HealthResponse
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 settings = get_settings()
+
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan handler."""
+    # --- Startup ---
+    logger.info(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} starting up...")
+    db_url = settings.DATABASE_URL
+    logger.info(
+        f"📊 Database: {db_url.split('@')[1] if '@' in db_url else 'local'}"
+    )
+    logger.info("🔐 Authentication enabled: JWT")
+    logger.info("📡 API URL: /api")
+    logger.info("📚 Swagger Docs: /api/docs")
+    from app.services.scheduler import start_scheduler
+    start_scheduler()
+    
+    # Create tables and seed data
+    create_tables()
+    seed_local_data()
+    
+    yield
+    
+    # --- Shutdown ---
+    from app.services.scheduler import stop_scheduler
+    stop_scheduler()
+    logger.info(f"{settings.APP_NAME} shutting down...")
 
 # Create FastAPI app
 app = FastAPI(
@@ -30,7 +66,8 @@ app = FastAPI(
     version=settings.APP_VERSION,
     docs_url="/api/docs",
     redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json"
+    openapi_url="/api/openapi.json",
+    lifespan=lifespan,
 )
 
 # Add rate limiter to app state
@@ -52,10 +89,12 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
         path = request.url.path
-        
+
         # Cache city data for 5 minutes
         if path.startswith("/api/cities"):
-            response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=60"
+            response.headers["Cache-Control"] = (
+                "public, max-age=300, stale-while-revalidate=60"
+            )
         # Cache ML forecasts for 30 minutes
         elif path.startswith("/api/ml/forecast"):
             response.headers["Cache-Control"] = "public, max-age=1800"
@@ -65,7 +104,7 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
         # No caching for health checks
         elif path.startswith("/api/health"):
             response.headers["Cache-Control"] = "no-store"
-        
+
         return response
 
 
@@ -117,14 +156,17 @@ def seed_local_data():
         else:
             # Check staleness: if the newest record is older than 12 hours, re-seed
             from sqlalchemy import func
+
             newest_ts = db.query(func.max(EnvironmentalData.timestamp)).scalar()
-            if newest_ts is not None and newest_ts < datetime.utcnow() - timedelta(hours=12):
+            if newest_ts is not None and newest_ts < datetime.now(timezone.utc) - timedelta(
+                hours=12
+            ):
                 logger.info("Seed data is stale (>12 h old) — deleting and re-seeding")
                 db.query(EnvironmentalData).delete()
                 needs_seed = True
 
         if needs_seed:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             for index, city in enumerate(CITY_COORDINATES):
                 db.add(
                     EnvironmentalData(
@@ -148,9 +190,9 @@ def seed_local_data():
         db.close()
 
 
-# Create tables on startup
-create_tables()
-seed_local_data()
+# Create tables on startup (Moved to lifespan)
+# create_tables()
+# seed_local_data()
 
 # Test connection
 if test_connection():
@@ -161,13 +203,14 @@ else:
 
 # ============ Health Routes ============
 
+
 @app.get("/", tags=["Health"])
 async def root():
     """Root endpoint"""
     return {
         "message": "Welcome to TerraPulse AI Backend",
         "version": settings.APP_VERSION,
-        "docs": "/api/docs"
+        "docs": "/api/docs",
     }
 
 
@@ -175,16 +218,17 @@ async def root():
 async def health_check():
     """Health check endpoint with component status"""
     db_status = await test_connection_async()
-    
+
     # Check WAQI API availability (lightweight check)
     waqi_status = "disabled"
     if settings.WAQI_API_TOKEN and settings.WAQI_API_TOKEN != "demo":
         try:
             import httpx
+
             async with httpx.AsyncClient(timeout=5) as client:
                 r = await client.get(
                     f"https://api.waqi.info/feed/delhi/?token={settings.WAQI_API_TOKEN}",
-                    follow_redirects=True
+                    follow_redirects=True,
                 )
             waqi_status = "ok" if r.status_code == 200 else "degraded"
         except Exception as e:
@@ -202,9 +246,8 @@ async def health_check():
         status=overall_status,
         version=settings.APP_VERSION,
         database=db_status,
-        timestamp=datetime.utcnow(),
-        # Add components dict if HealthResponse schema allows
-        **{"components": {"database": db_status.get("status"), "waqi_api": waqi_status}}
+        timestamp=datetime.now(timezone.utc),
+        components={"database": db_status.get("status"), "waqi_api": waqi_status},
     )
 
 
@@ -221,13 +264,13 @@ async def status():
         "app_name": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "debug": settings.DEBUG,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "features": {
             "authentication": True,
             "database": True,
             "caching": settings.REDIS_ENABLED,
-            "api_logging": True
-        }
+            "api_logging": True,
+        },
     }
 
 
@@ -244,6 +287,7 @@ app.include_router(ml.router, prefix=settings.API_PREFIX)
 
 # ============ Error Handlers ============
 
+
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):
     """Handle general exceptions"""
@@ -253,39 +297,15 @@ async def general_exception_handler(request, exc):
         content={
             "error": "Internal Server Error",
             "detail": str(exc) if settings.DEBUG else "An error occurred",
-        }
+        },
     )
 
 
 # ============ Startup/Shutdown Events ============
-
-@app.on_event("startup")
-async def startup_event():
-    """Run on application startup"""
-    logger.info(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} starting up...")
-    logger.info(f"📊 Database: {settings.DATABASE_URL.split('@')[1] if '@' in settings.DATABASE_URL else 'unknown'}")
-    logger.info(f"🔐 Authentication enabled: JWT")
-    logger.info(f"📡 API URL: /api")
-    logger.info(f"📚 Swagger Docs: /api/docs")
-
-    # Start live AQI data scheduler
-    from app.services.scheduler import start_scheduler
-    start_scheduler()
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Run on application shutdown"""
-    from app.services.scheduler import stop_scheduler
-    stop_scheduler()
-    logger.info(f"🛑 {settings.APP_NAME} shutting down...")
+# Moved to lifespan context manager
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=settings.DEBUG
-    )
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=settings.DEBUG)

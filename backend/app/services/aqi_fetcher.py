@@ -6,7 +6,7 @@ data for all 20 monitored Indian cities and stores it in PostgreSQL.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
@@ -79,7 +79,7 @@ def fetch_single_city(city: str, feed_name: str, token: str) -> Optional[dict]:
             "humidity": _extract_iaqi(data, "h"),
             "wind_speed": _extract_iaqi(data, "w"),
             "rainfall": _extract_iaqi(data, "r") or 0,
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(timezone.utc),
         }
     except httpx.TimeoutException:
         logger.warning(f"Timeout fetching AQI for {city}")

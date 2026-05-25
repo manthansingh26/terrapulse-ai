@@ -344,8 +344,6 @@ const isAuthRoute = (url?: string) =>
 
 class APIClient {
   private client: AxiosInstance
-  // @ts-expect-error -- state is set internally and consumed by external event listeners
-  private _isWakingUp: boolean = false
 
   constructor() {
     this.client = axios.create({
@@ -405,9 +403,8 @@ class APIClient {
       (response) => response,
       async (error) => {
         const config = error.config
-        if (!config || config._retryCount >= 5) {
-          if (config?._retryCount >= 5) {
-            this._isWakingUp = false
+        if (!config || config._retryCount >= 8) {
+          if (config?._retryCount >= 8) {
             window.dispatchEvent(new CustomEvent('backend:failed'))
           }
           return Promise.reject(error)
@@ -419,16 +416,15 @@ class APIClient {
 
         if (isNetworkError || isColdStart) {
           config._retryCount = (config._retryCount || 0) + 1
-          this._isWakingUp = true
           window.dispatchEvent(
             new CustomEvent('backend:waking', { detail: { attempt: config._retryCount } })
           )
 
-          const delay = Math.min(1000 * Math.pow(2, config._retryCount), 20000) // exp backoff, max 20s
+          // 3s, 6s, 12s, 20s, 20s, 20s... max 20s per wait
+          const delay = Math.min(1500 * Math.pow(2, config._retryCount), 20000) 
           await new Promise((res) => setTimeout(res, delay))
 
-          if (config._retryCount >= 5) {
-            this._isWakingUp = false
+          if (config._retryCount >= 8) {
             window.dispatchEvent(new CustomEvent('backend:failed'))
           }
 

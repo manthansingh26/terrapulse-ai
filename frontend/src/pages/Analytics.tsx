@@ -28,28 +28,29 @@ const Analytics: React.FC = () => {
   })
 
   useEffect(() => {
-    const fetchCities = async () => {
-      const controller = new AbortController()
-      const timeout = window.setTimeout(() => controller.abort(), 45000)
+    const controller = new AbortController()
 
+    const fetchCities = async () => {
       try {
         setIsLoading(true)
         setError(null)
         const data = await apiClient.getAllCities({ signal: controller.signal })
+        if (controller.signal.aborted) return
         setCities(data)
         if (data.length > 0) {
           setSelectedCity(data[0].city)
         }
       } catch (err: unknown) {
+        if (controller.signal.aborted) return
         setError(getApiErrorMessage(err, 'Failed to load analytics data'))
         console.error(err)
       } finally {
-        window.clearTimeout(timeout)
-        setIsLoading(false)
+        if (!controller.signal.aborted) setIsLoading(false)
       }
     }
 
     void fetchCities()
+    return () => controller.abort()
   }, [])
 
   const selectedCityData = cities.find((c) => c.city === selectedCity)
@@ -68,26 +69,27 @@ const Analytics: React.FC = () => {
   useEffect(() => {
     if (!selectedCity) return
 
-    const fetchHistorical = async () => {
-      const controller = new AbortController()
-      const timeout = window.setTimeout(() => controller.abort(), 45000)
+    const controller = new AbortController()
 
+    const fetchHistorical = async () => {
       try {
         setHistoricalLoading(true)
         setHistoricalError(null)
         const data = await apiClient.getHistoricalData(selectedCity, dayCount, { signal: controller.signal })
+        if (controller.signal.aborted) return
         setHistoricalData(data)
       } catch (err: unknown) {
+        if (controller.signal.aborted) return
         console.error('Failed to fetch historical data:', err)
         setHistoricalError(getApiErrorMessage(err, 'Failed to load historical data for this city'))
         setHistoricalData([])
       } finally {
-        window.clearTimeout(timeout)
-        setHistoricalLoading(false)
+        if (!controller.signal.aborted) setHistoricalLoading(false)
       }
     }
 
     void fetchHistorical()
+    return () => controller.abort()
   }, [selectedCity, dayCount])
 
   // Transform API data into chart format
@@ -127,7 +129,7 @@ const Analytics: React.FC = () => {
     .map((city) => ({
       name: city.city,
       aqi: city.current_aqi || 0,
-      color: city.current_aqi! <= 50 ? '#10b981' : city.current_aqi! <= 100 ? '#fbbf24' : city.current_aqi! <= 200 ? '#f97316' : '#ef4444',
+      color: (city.current_aqi || 0) <= 50 ? '#10b981' : (city.current_aqi || 0) <= 100 ? '#fbbf24' : (city.current_aqi || 0) <= 200 ? '#f97316' : '#ef4444',
     }))
 
   const citiesWithAqi = cities.filter(c => c.current_aqi)
@@ -467,9 +469,9 @@ const Analytics: React.FC = () => {
                     </td>
                     <td className="py-3 px-4">
                       <span className={`px-3 py-1 rounded-full font-medium ${
-                        (row.temp / row.humidity) > 0.5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                        row.humidity > 0 && (row.temp / row.humidity) > 0.5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
                       }`}>
-                        {(row.temp / row.humidity).toFixed(2)}
+                        {row.humidity > 0 ? (row.temp / row.humidity).toFixed(2) : 'N/A'}
                       </span>
                     </td>
                   </tr>
@@ -492,17 +494,17 @@ const Analytics: React.FC = () => {
                   key={city.city}
                   className="p-4 rounded-xl border-2 transition-all hover:shadow-lg hover:scale-105"
                   style={{
-                    borderColor: city.current_aqi! <= 50 ? '#10b981' :
-                      city.current_aqi! <= 100 ? '#fbbf24' :
-                      city.current_aqi! <= 200 ? '#f97316' : '#ef4444'
+                    borderColor: (city.current_aqi || 0) <= 50 ? '#10b981' :
+                      (city.current_aqi || 0) <= 100 ? '#fbbf24' :
+                      (city.current_aqi || 0) <= 200 ? '#f97316' : '#ef4444'
                   }}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <span className="font-bold text-gray-900">{city.city}</span>
                     <span className="text-2xl font-bold" style={{
-                      color: city.current_aqi! <= 50 ? '#10b981' :
-                        city.current_aqi! <= 100 ? '#fbbf24' :
-                        city.current_aqi! <= 200 ? '#f97316' : '#ef4444'
+                      color: (city.current_aqi || 0) <= 50 ? '#10b981' :
+                        (city.current_aqi || 0) <= 100 ? '#fbbf24' :
+                        (city.current_aqi || 0) <= 200 ? '#f97316' : '#ef4444'
                     }}>
                       {city.current_aqi}
                     </span>
@@ -516,9 +518,9 @@ const Analytics: React.FC = () => {
                       className="h-full rounded-full transition-all"
                       style={{
                         width: `${Math.min(((city.current_aqi || 0) / 300) * 100, 100)}%`,
-                        backgroundColor: city.current_aqi! <= 50 ? '#10b981' :
-                          city.current_aqi! <= 100 ? '#fbbf24' :
-                          city.current_aqi! <= 200 ? '#f97316' : '#ef4444'
+                        backgroundColor: (city.current_aqi || 0) <= 50 ? '#10b981' :
+                          (city.current_aqi || 0) <= 100 ? '#fbbf24' :
+                          (city.current_aqi || 0) <= 200 ? '#f97316' : '#ef4444'
                       }}
                     />
                   </div>

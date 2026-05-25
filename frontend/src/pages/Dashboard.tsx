@@ -27,14 +27,10 @@ import {
   TrendingUp,
   Wind,
 } from 'lucide-react'
-import { API_BASE_URL, apiClient, City, getApiErrorMessage, MLInsights } from '@/services/api'
-import { useWebSocket } from '@/hooks/useWebSocket'
+import { apiClient, City, getApiErrorMessage, MLInsights } from '@/services/api'
 import DataSourceNotice from '@/components/DataSourceNotice'
 import { FreshnessBadge } from '@/components/FreshnessBadge'
 
-const wsUrl = API_BASE_URL.startsWith('http')
-  ? API_BASE_URL.replace(/^http/, 'ws').replace(/\/api\/?$/, '/api/ws/cities')
-  : 'wss://terrapulse-ai.onrender.com/api/ws/cities'
 
 const riskColor = {
   Low: '#10b981',
@@ -65,36 +61,40 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState('')
 
-  useWebSocket(wsUrl)
-
-  const loadDashboard = async (showLoader = false) => {
-    const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 45000)
-    const config = { signal: controller.signal }
-
+  const loadDashboard = async (showLoader = false, signal?: AbortSignal) => {
     try {
       if (showLoader) setIsLoading(true)
       setError(null)
+      const config = signal ? { signal } : {}
       const [cityData, insights] = await Promise.all([
         apiClient.getAllCities(config),
         apiClient.getMLInsights(config),
       ])
+      if (signal?.aborted) return
       setCities(cityData)
       setMlInsights(insights)
       setLastUpdated(new Date().toLocaleTimeString())
     } catch (err: unknown) {
+      if (signal?.aborted) return
       setError(getApiErrorMessage(err, 'Unable to load demo model intelligence. Check backend and database connection.'))
       console.error(err)
     } finally {
-      window.clearTimeout(timeout)
-      setIsLoading(false)
+      if (!signal?.aborted) setIsLoading(false)
     }
   }
 
   useEffect(() => {
-    loadDashboard(true)
-    const interval = window.setInterval(() => loadDashboard(false), 30000)
-    return () => window.clearInterval(interval)
+    const controller = new AbortController()
+    loadDashboard(true, controller.signal)
+    
+    const interval = window.setInterval(() => {
+      loadDashboard(false, controller.signal)
+    }, 30000)
+    
+    return () => {
+      window.clearInterval(interval)
+      controller.abort()
+    }
   }, [])
 
   const validAQI = cities.filter((city) => city.current_aqi)

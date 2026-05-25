@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Bar,
   BarChart,
@@ -100,14 +101,11 @@ const ModelLab: React.FC = () => {
   const [alertResults, setAlertResults] = useState<MLForecastAlert[]>([])
   const [error, setError] = useState<string | null>(null)
 
-  const loadModelLab = async () => {
-    const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 90000) // 90s for Model Lab (Render cold start can take 60s)
-    const config = { signal: controller.signal }
-
+  const loadModelLab = async (signal?: AbortSignal) => {
     try {
       setIsLoading(true)
       setError(null)
+      const config = signal ? { signal } : {}
       const [metricsData, runsData, qualityData, importanceData, evaluationData, forecastData, explanationData] = await Promise.all([
         apiClient.getMLMetrics(config),
         apiClient.getMLRunHistory(config),
@@ -117,6 +115,7 @@ const ModelLab: React.FC = () => {
         apiClient.getAllForecasts(config),
         apiClient.getTopForecastExplanations(5, config),
       ])
+      if (signal?.aborted) return
       setMetrics(metricsData)
       setModelRuns(runsData)
       setDataQuality(qualityData)
@@ -125,16 +124,18 @@ const ModelLab: React.FC = () => {
       setForecasts(forecastData)
       setForecastExplanations(explanationData)
     } catch (err: unknown) {
+      if (signal?.aborted) return
       setError(getModelLabErrorMessage(err, 'Unable to load model artifacts. Train the model or check backend status.'))
       console.error(err)
     } finally {
-      window.clearTimeout(timeout)
-      setIsLoading(false)
+      if (!signal?.aborted) setIsLoading(false)
     }
   }
 
   useEffect(() => {
-    loadModelLab()
+    const controller = new AbortController()
+    void loadModelLab(controller.signal)
+    return () => controller.abort()
   }, [])
 
   const handleRetrain = async () => {
@@ -347,12 +348,12 @@ const ModelLab: React.FC = () => {
           >
             Retry Loading
           </button>
-          <a
-            href="/dashboard"
+          <Link
+            to="/dashboard"
             className="px-6 py-2.5 bg-gray-200 text-gray-800 rounded-lg text-sm font-semibold hover:bg-gray-300 active:scale-95 transition-all"
           >
             Go to Dashboard
-          </a>
+          </Link>
         </div>
       </div>
     )

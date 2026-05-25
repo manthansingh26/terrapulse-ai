@@ -30,7 +30,7 @@ CITY_COORDINATES = {
     "Ludhiana": {"lat": 30.9010, "lon": 75.8573},
     "Kanpur": {"lat": 26.4499, "lon": 80.3319},
     "Visakhapatnam": {"lat": 17.6869, "lon": 83.2185},
-    "Pimpri-Chinchwad": {"lat": 18.6370, "lon": 73.7997}
+    "Pimpri-Chinchwad": {"lat": 18.6370, "lon": 73.7997},
 }
 
 
@@ -58,7 +58,6 @@ async def get_all_cities(db: Session = Depends(get_db)):
     """Get data for all 20 cities"""
 
     from app.models.models import EnvironmentalData
-    from sqlalchemy import func, and_, select
     import logging
 
     logger = logging.getLogger(__name__)
@@ -68,26 +67,37 @@ async def get_all_cities(db: Session = Depends(get_db)):
         for city, coords in CITY_COORDINATES.items():
             try:
                 # Get latest data for this city
-                latest = db.query(EnvironmentalData).filter(
-                    EnvironmentalData.city == city
-                ).order_by(EnvironmentalData.timestamp.desc()).first()
+                latest = (
+                    db.query(EnvironmentalData)
+                    .filter(EnvironmentalData.city == city)
+                    .order_by(EnvironmentalData.timestamp.desc())
+                    .first()
+                )
 
                 if latest:
                     aqi_status_str, color = get_aqi_status_and_color(latest.aqi)
-                    
+
                     # Build city data with proper type conversion
                     city_response = {
                         "city": str(city),
                         "latitude": float(coords["lat"]),
                         "longitude": float(coords["lon"]),
-                        "current_aqi": int(latest.aqi) if latest.aqi else None,
-                        "current_temperature": round(float(latest.temperature), 2) if latest.temperature else None,
-                        "current_humidity": round(float(latest.humidity), 2) if latest.humidity else None,
+                        "current_aqi": int(latest.aqi) if latest.aqi is not None else None,
+                        "current_temperature": (
+                            round(float(latest.temperature), 2)
+                            if latest.temperature
+                            else None
+                        ),
+                        "current_humidity": (
+                            round(float(latest.humidity), 2)
+                            if latest.humidity
+                            else None
+                        ),
                         "aqi_status": str(aqi_status_str),
                         "aqi_color": str(color),
-                        "last_updated": latest.timestamp if latest.timestamp else None
+                        "last_updated": latest.timestamp if latest.timestamp else None,
                     }
-                    
+
                     # Validate with schema
                     cities_data.append(CityDataResponse(**city_response))
                 else:
@@ -101,40 +111,39 @@ async def get_all_cities(db: Session = Depends(get_db)):
                         "current_humidity": None,
                         "aqi_status": "No Data",
                         "aqi_color": "#808080",
-                        "last_updated": None
+                        "last_updated": None,
                     }
                     cities_data.append(CityDataResponse(**city_response))
-                    
+
             except Exception as e:
                 logger.error(f"Error processing city {city}: {str(e)}", exc_info=True)
                 # Still include city with minimal data
-                cities_data.append(CityDataResponse(
-                    city=city,
-                    latitude=coords["lat"],
-                    longitude=coords["lon"],
-                    current_aqi=None,
-                    current_temperature=None,
-                    current_humidity=None,
-                    aqi_status="Error",
-                    aqi_color="#808080",
-                    last_updated=None
-                ))
+                cities_data.append(
+                    CityDataResponse(
+                        city=city,
+                        latitude=coords["lat"],
+                        longitude=coords["lon"],
+                        current_aqi=None,
+                        current_temperature=None,
+                        current_humidity=None,
+                        aqi_status="Error",
+                        aqi_color="#808080",
+                        last_updated=None,
+                    )
+                )
 
         return cities_data
-        
+
     except Exception as e:
         logger.error(f"Critical error in get_all_cities: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving city data: {str(e)}"
+            detail="Error retrieving city data",
         )
 
 
 @router.get("/{city}", response_model=CityDataResponse)
-async def get_city_data(
-    city: str,
-    db: Session = Depends(get_db)
-):
+async def get_city_data(city: str, db: Session = Depends(get_db)):
     """Get data for a specific city"""
 
     from app.models.models import EnvironmentalData
@@ -143,15 +152,18 @@ async def get_city_data(
     if city not in CITY_COORDINATES:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"City '{city}' not found in monitoring list"
+            detail=f"City '{city}' not found in monitoring list",
         )
 
     coords = CITY_COORDINATES[city]
 
     # Get latest data
-    latest = db.query(EnvironmentalData).filter(
-        EnvironmentalData.city == city
-    ).order_by(EnvironmentalData.timestamp.desc()).first()
+    latest = (
+        db.query(EnvironmentalData)
+        .filter(EnvironmentalData.city == city)
+        .order_by(EnvironmentalData.timestamp.desc())
+        .first()
+    )
 
     if latest:
         aqi_status_str, color = get_aqi_status_and_color(latest.aqi)
@@ -159,12 +171,14 @@ async def get_city_data(
             city=city,
             latitude=coords["lat"],
             longitude=coords["lon"],
-            current_aqi=int(latest.aqi) if latest.aqi else None,
-            current_temperature=round(latest.temperature, 2) if latest.temperature else None,
+            current_aqi=int(latest.aqi) if latest.aqi is not None else None,
+            current_temperature=(
+                round(latest.temperature, 2) if latest.temperature else None
+            ),
             current_humidity=round(latest.humidity, 2) if latest.humidity else None,
             aqi_status=aqi_status_str,
             aqi_color=color,
-            last_updated=latest.timestamp
+            last_updated=latest.timestamp,
         )
     else:
         return CityDataResponse(
@@ -176,7 +190,7 @@ async def get_city_data(
             current_humidity=None,
             aqi_status="No Data",
             aqi_color="#808080",
-            last_updated=None
+            last_updated=None,
         )
 
 

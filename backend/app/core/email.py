@@ -2,7 +2,7 @@ import smtplib
 import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from app.core.config import get_settings
@@ -12,9 +12,7 @@ settings = get_settings()
 
 
 def send_alert_email(
-    city: str,
-    aqi_value: int,
-    recipient: Optional[str] = None
+    city: str, aqi_value: int, recipient: Optional[str] = None
 ) -> bool:
     """
     Send email alert when AQI exceeds threshold.
@@ -30,7 +28,9 @@ def send_alert_email(
     recipient = recipient or settings.ALERT_EMAIL
 
     if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        logger.warning(f"SMTP credentials not configured. Would send alert to {recipient} for {city} AQI={aqi_value}")
+        logger.warning(
+            f"SMTP credentials not configured. Would send alert to {recipient} for {city} AQI={aqi_value}"
+        )
         return False
 
     subject = f"🚨 Air Quality Alert: {city} - AQI {aqi_value}"
@@ -43,7 +43,7 @@ def send_alert_email(
         <div style="background-color: #fef2f2; padding: 20px; border-left: 4px solid #ef4444; margin: 20px 0;">
             <p><strong>City:</strong> {city}</p>
             <p><strong>AQI Level:</strong> {aqi_value}</p>
-            <p><strong>Time:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+            <p><strong>Time:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
         </div>
 
         <h3>Health Recommendations:</h3>
@@ -70,7 +70,7 @@ def send_alert_email(
 
         msg.attach(MIMEText(body, "html", "utf-8"))
 
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
             server.starttls()
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.sendmail(settings.SMTP_USER, recipient, msg.as_string())
@@ -94,7 +94,7 @@ def send_forecast_alert_email(
     current_aqi: int,
     predicted_aqi: int,
     confidence: float,
-    recipient: Optional[str] = None
+    recipient: Optional[str] = None,
 ) -> bool:
     """Send an early warning email when forecasted AQI exceeds threshold."""
     recipient = recipient or settings.ALERT_EMAIL
@@ -119,7 +119,7 @@ def send_forecast_alert_email(
             <p><strong>Predicted AQI in 24 hours:</strong> {predicted_aqi}</p>
             <p><strong>Model confidence:</strong> {round(confidence * 100)}%</p>
             <p><strong>Alert threshold:</strong> {settings.AQI_ALERT_THRESHOLD}</p>
-            <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+            <p><strong>Generated:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
         </div>
 
         <h3>Recommended Early Actions:</h3>
@@ -145,7 +145,7 @@ def send_forecast_alert_email(
 
         msg.attach(MIMEText(body, "html", "utf-8"))
 
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
             server.starttls()
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.sendmail(settings.SMTP_USER, recipient, msg.as_string())

@@ -63,19 +63,19 @@ def count_city_readings(db: Session, city: str) -> int:
 async def train_aqi_model(
     request: Request,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Train the AQI forecasting model and save model artifacts.
-    
+
     Requires authentication. Limited to 3 training runs per hour per IP.
     """
     try:
         # Apply rate limit
         limiter.hit(request, "3/hour")
-    except:
+    except Exception:
         # Continue even if rate limiting fails
         pass
-    
+
     metrics = train_model(db)
     return metrics
 
@@ -114,7 +114,9 @@ async def get_model_run(run_id: str):
 async def get_ml_data_quality(db: Session = Depends(get_db)):
     """Return training dataset freshness and completeness signals."""
     total_records = db.query(func.count(EnvironmentalData.id)).scalar() or 0
-    monitored_cities = db.query(func.count(func.distinct(EnvironmentalData.city))).scalar() or 0
+    monitored_cities = (
+        db.query(func.count(func.distinct(EnvironmentalData.city))).scalar() or 0
+    )
     latest_timestamp = db.query(func.max(EnvironmentalData.timestamp)).scalar()
     missing_aqi = (
         db.query(func.count(EnvironmentalData.id))
@@ -140,7 +142,11 @@ async def get_ml_data_quality(db: Session = Depends(get_db)):
     freshness_status = "no_data"
     if latest_timestamp:
         now = datetime.now(latest_timestamp.tzinfo or timezone.utc)
-        latest = latest_timestamp if latest_timestamp.tzinfo else latest_timestamp.replace(tzinfo=timezone.utc)
+        latest = (
+            latest_timestamp
+            if latest_timestamp.tzinfo
+            else latest_timestamp.replace(tzinfo=timezone.utc)
+        )
         age_hours = (now - latest).total_seconds() / 3600
         if age_hours <= 6:
             freshness_status = "fresh"
@@ -156,7 +162,9 @@ async def get_ml_data_quality(db: Session = Depends(get_db)):
         synthetic_rows = 0
 
     total_cells = total_records * 6
-    missing_ratio = round((missing_aqi + missing_weather) / total_cells, 4) if total_cells else 0.0
+    missing_ratio = (
+        round((missing_aqi + missing_weather) / total_cells, 4) if total_cells else 0.0
+    )
 
     return MLDataQualityResponse(
         total_records=total_records,
@@ -198,7 +206,7 @@ async def get_evaluation_samples():
 @router.get("/forecast/all", response_model=list[AQIForecastResponse])
 async def forecast_all_cities(db: Session = Depends(get_db)):
     """Predict AQI 24 hours ahead for every monitored city.
-    
+
     Requires at least 48 historical readings per city for reliable forecasts.
     """
     subquery = (
@@ -231,7 +239,11 @@ async def forecast_all_cities(db: Session = Depends(get_db)):
                 "reading_count": reading_count,
                 "required_readings": 48,
                 "is_sufficient": reading_count >= 48,
-                "warning": None if reading_count >= 48 else f"Only {reading_count} readings available; recommend ≥48 for confidence"
+                "warning": (
+                    None
+                    if reading_count >= 48
+                    else f"Only {reading_count} readings available; recommend ≥48 for confidence"
+                ),
             }
             predictions.append(prediction)
     except FileNotFoundError as exc:
@@ -244,7 +256,6 @@ async def forecast_all_cities(db: Session = Depends(get_db)):
         prediction["generated_at"] = datetime.fromisoformat(prediction["generated_at"])
 
     return sorted(predictions, key=lambda item: item["predicted_aqi_24h"], reverse=True)
-
 
 
 @router.get("/explain/top", response_model=list[AQIPredictionExplanationResponse])
@@ -282,15 +293,19 @@ async def explain_top_city_forecasts(
         ) from exc
 
     for explanation in explanations:
-        explanation["generated_at"] = datetime.fromisoformat(explanation["generated_at"])
+        explanation["generated_at"] = datetime.fromisoformat(
+            explanation["generated_at"]
+        )
 
-    return sorted(explanations, key=lambda item: item["predicted_aqi_24h"], reverse=True)[:limit]
+    return sorted(
+        explanations, key=lambda item: item["predicted_aqi_24h"], reverse=True
+    )[:limit]
 
 
 @router.get("/forecast/{city}", response_model=AQIForecastResponse)
 async def forecast_city(city: str, db: Session = Depends(get_db)):
     """Predict AQI 24 hours ahead for one city.
-    
+
     Requires at least 48 historical readings for reliable forecast.
     """
     record = latest_city_record(db, city)
@@ -313,7 +328,11 @@ async def forecast_city(city: str, db: Session = Depends(get_db)):
         "reading_count": reading_count,
         "required_readings": 48,
         "is_sufficient": reading_count >= 48,
-        "warning": None if reading_count >= 48 else f"Only {reading_count} readings available; recommend ≥48 for confidence"
+        "warning": (
+            None
+            if reading_count >= 48
+            else f"Only {reading_count} readings available; recommend ≥48 for confidence"
+        ),
     }
     prediction["generated_at"] = datetime.fromisoformat(prediction["generated_at"])
     return prediction

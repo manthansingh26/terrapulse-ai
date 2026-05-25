@@ -1,12 +1,12 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean
 from sqlalchemy.sql import func
-from datetime import datetime
 
 from app.db.database import Base
 
 
 class User(Base):
     """User model for authentication"""
+
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -25,6 +25,7 @@ class User(Base):
 
 class EnvironmentalData(Base):
     """Environmental data model"""
+
     __tablename__ = "environmental_data"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -43,6 +44,7 @@ class EnvironmentalData(Base):
 
 class AirQualityHistory(Base):
     """Air quality history model"""
+
     __tablename__ = "air_quality_history"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -54,11 +56,14 @@ class AirQualityHistory(Base):
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     def __repr__(self):
-        return f"<AirQualityHistory(city={self.city}, aqi={self.aqi}, pm25={self.pm25})>"
+        return (
+            f"<AirQualityHistory(city={self.city}, aqi={self.aqi}, pm25={self.pm25})>"
+        )
 
 
 class APILog(Base):
     """API usage logging"""
+
     __tablename__ = "api_logs"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -75,6 +80,7 @@ class APILog(Base):
 
 class AlertHistory(Base):
     """Alert history for AQI notifications"""
+
     __tablename__ = "alert_history"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -83,7 +89,9 @@ class AlertHistory(Base):
     alert_type = Column(String(50), nullable=False, default="high_aqi")
     email_sent = Column(Boolean, default=True)
     email_recipient = Column(String(255), nullable=True)
-    last_alert_time = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    last_alert_time = Column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
 
     def __repr__(self):
         return f"<AlertHistory(city={self.city}, aqi={self.aqi_value}, type={self.alert_type})>"

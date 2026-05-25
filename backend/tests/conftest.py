@@ -15,7 +15,7 @@ if str(BACKEND_ROOT) not in sys.path:
 
 # Override environment BEFORE any app module is imported
 os.environ["DATABASE_URL"] = "sqlite:///./test_terrapulse.db"
-os.environ["SECRET_KEY"] = "test-secret-key-not-for-production"
+os.environ["SECRET_KEY"] = "testing-only-not-for-production-key-abcdef0123456789abcdef0123456789"
 os.environ["DEBUG"] = "false"
 
 import pytest

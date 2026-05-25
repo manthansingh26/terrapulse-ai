@@ -1,7 +1,7 @@
 """Tests for city data endpoints."""
 
 from app.models.models import EnvironmentalData
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def _seed_city(db_session, city="Delhi", aqi=150):
@@ -14,7 +14,7 @@ def _seed_city(db_session, city="Delhi", aqi=150):
         humidity=55.0,
         wind_speed=5.0,
         rainfall=0.0,
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
     )
     db_session.add(record)
     db_session.commit()

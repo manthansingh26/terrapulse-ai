@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 
 from app.db.database import get_db
@@ -10,7 +10,7 @@ from app.schemas.schemas import (
     AlertResponse,
     AlertHistoryResponse,
     MLForecastAlertResponse,
-    MultipleAlertsRequest
+    MultipleAlertsRequest,
 )
 from app.core.config import get_settings
 from app.core.email import send_alert_email, send_forecast_alert_email
@@ -23,23 +23,26 @@ settings = get_settings()
 
 
 def recent_alert_exists(db: Session, city: str, alert_type: str) -> AlertHistory | None:
-    one_hour_ago = datetime.utcnow() - timedelta(hours=1)
-    return db.query(AlertHistory).filter(
-        AlertHistory.city == city,
-        AlertHistory.alert_type == alert_type,
-        AlertHistory.last_alert_time >= one_hour_ago
-    ).first()
+    one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+    return (
+        db.query(AlertHistory)
+        .filter(
+            AlertHistory.city == city,
+            AlertHistory.alert_type == alert_type,
+            AlertHistory.last_alert_time >= one_hour_ago,
+        )
+        .first()
+    )
 
 
 @router.post(
     "/test",
     response_model=AlertResponse,
     status_code=status.HTTP_200_OK,
-    tags=["Alerts"]
+    tags=["Alerts"],
 )
 async def test_alert_endpoint(
-    request: AlertCheckRequest,
-    db: Session = Depends(get_db)
+    request: AlertCheckRequest, db: Session = Depends(get_db)
 ):
     """
     Test endpoint - Send alert email WITHOUT authentication.
@@ -54,9 +57,7 @@ async def test_alert_endpoint(
 
     # Send email
     email_sent = send_alert_email(
-        city=city,
-        aqi_value=aqi_value,
-        recipient=settings.ALERT_EMAIL
+        city=city, aqi_value=aqi_value, recipient=settings.ALERT_EMAIL
     )
 
     # Log to database
@@ -66,7 +67,7 @@ async def test_alert_endpoint(
         alert_type="test_alert",
         email_sent=email_sent,
         email_recipient=settings.ALERT_EMAIL,
-        last_alert_time=datetime.utcnow()
+        last_alert_time=datetime.now(timezone.utc),
     )
     db.add(alert)
     db.commit()
@@ -77,19 +78,15 @@ async def test_alert_endpoint(
         city=city,
         aqi_value=aqi_value,
         threshold=settings.AQI_ALERT_THRESHOLD,
-        message=f"Test alert processed. Email {'SENT' if email_sent else 'FAILED'} to {settings.ALERT_EMAIL}"
+        message=f"Test alert processed. Email {'SENT' if email_sent else 'FAILED'} to {settings.ALERT_EMAIL}",
     )
 
 
-@router.post(
-    "/check",
-    response_model=AlertResponse,
-    status_code=status.HTTP_200_OK
-)
+@router.post("/check", response_model=AlertResponse, status_code=status.HTTP_200_OK)
 async def check_and_send_alert(
     request: AlertCheckRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Check if AQI exceeds threshold and send email alert.
@@ -107,14 +104,14 @@ async def check_and_send_alert(
             city=city,
             aqi_value=aqi_value,
             threshold=threshold,
-            message=f"AQI {aqi_value} is below threshold {threshold}"
+            message=f"AQI {aqi_value} is below threshold {threshold}",
         )
 
     # Check if alert was sent recently (within 1 hour)
     recent_alert = recent_alert_exists(db, city, "high_aqi")
 
     if recent_alert:
-        time_since = datetime.utcnow() - recent_alert.last_alert_time
+        time_since = datetime.now(timezone.utc) - recent_alert.last_alert_time
         minutes_left = 60 - int(time_since.total_seconds() / 60)
         return AlertResponse(
             alert_triggered=False,
@@ -122,14 +119,12 @@ async def check_and_send_alert(
             city=city,
             aqi_value=aqi_value,
             threshold=threshold,
-            message=f"Alert already sent {int(time_since.total_seconds() / 60)} minutes ago. Retry in {minutes_left} minutes"
+            message=f"Alert already sent {int(time_since.total_seconds() / 60)} minutes ago. Retry in {minutes_left} minutes",
         )
 
     # Send email alert
     email_sent = send_alert_email(
-        city=city,
-        aqi_value=aqi_value,
-        recipient=settings.ALERT_EMAIL
+        city=city, aqi_value=aqi_value, recipient=settings.ALERT_EMAIL
     )
 
     # Log alert to database
@@ -139,7 +134,7 @@ async def check_and_send_alert(
         alert_type="high_aqi",
         email_sent=email_sent,
         email_recipient=settings.ALERT_EMAIL,
-        last_alert_time=datetime.utcnow()
+        last_alert_time=datetime.now(timezone.utc),
     )
     db.add(alert)
     db.commit()
@@ -153,29 +148,32 @@ async def check_and_send_alert(
         city=city,
         aqi_value=aqi_value,
         threshold=threshold,
-        message=f"Alert triggered! Email {'sent' if email_sent else 'failed to send'} to {settings.ALERT_EMAIL}"
+        message=f"Alert triggered! Email {'sent' if email_sent else 'failed to send'} to {settings.ALERT_EMAIL}",
     )
 
 
 @router.post(
     "/ml/check/{city}",
     response_model=MLForecastAlertResponse,
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,
 )
 async def check_ml_forecast_alert(
     city: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Send an early warning when the trained model predicts AQI will cross threshold."""
-    record = db.query(EnvironmentalData).filter(
-        EnvironmentalData.city == city
-    ).order_by(EnvironmentalData.timestamp.desc()).first()
+    record = (
+        db.query(EnvironmentalData)
+        .filter(EnvironmentalData.city == city)
+        .order_by(EnvironmentalData.timestamp.desc())
+        .first()
+    )
 
     if not record:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No environmental data found for city: {city}"
+            detail=f"No environmental data found for city: {city}",
         )
 
     try:
@@ -183,7 +181,7 @@ async def check_ml_forecast_alert(
     except FileNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"{exc}. Run POST /api/ml/train first."
+            detail=f"{exc}. Run POST /api/ml/train first.",
         ) from exc
 
     current_aqi = prediction["current_aqi"]
@@ -200,12 +198,12 @@ async def check_ml_forecast_alert(
             predicted_aqi_24h=predicted_aqi,
             threshold=threshold,
             confidence=confidence,
-            message=f"Predicted AQI {predicted_aqi} is below threshold {threshold}"
+            message=f"Predicted AQI {predicted_aqi} is below threshold {threshold}",
         )
 
     recent_alert = recent_alert_exists(db, city, "ml_forecast_aqi")
     if recent_alert:
-        time_since = datetime.utcnow() - recent_alert.last_alert_time
+        time_since = datetime.now(timezone.utc) - recent_alert.last_alert_time
         minutes_left = max(0, 60 - int(time_since.total_seconds() / 60))
         return MLForecastAlertResponse(
             alert_triggered=False,
@@ -215,7 +213,7 @@ async def check_ml_forecast_alert(
             predicted_aqi_24h=predicted_aqi,
             threshold=threshold,
             confidence=confidence,
-            message=f"ML forecast alert already sent {int(time_since.total_seconds() / 60)} minutes ago. Retry in {minutes_left} minutes"
+            message=f"ML forecast alert already sent {int(time_since.total_seconds() / 60)} minutes ago. Retry in {minutes_left} minutes",
         )
 
     email_sent = send_forecast_alert_email(
@@ -223,7 +221,7 @@ async def check_ml_forecast_alert(
         current_aqi=current_aqi,
         predicted_aqi=predicted_aqi,
         confidence=confidence,
-        recipient=settings.ALERT_EMAIL
+        recipient=settings.ALERT_EMAIL,
     )
 
     alert = AlertHistory(
@@ -232,7 +230,7 @@ async def check_ml_forecast_alert(
         alert_type="ml_forecast_aqi",
         email_sent=email_sent,
         email_recipient=settings.ALERT_EMAIL,
-        last_alert_time=datetime.utcnow()
+        last_alert_time=datetime.now(timezone.utc),
     )
     db.add(alert)
     db.commit()
@@ -245,25 +243,25 @@ async def check_ml_forecast_alert(
         predicted_aqi_24h=predicted_aqi,
         threshold=threshold,
         confidence=confidence,
-        message=f"ML early warning triggered. Email {'sent' if email_sent else 'failed'} to {settings.ALERT_EMAIL}"
+        message=f"ML early warning triggered. Email {'sent' if email_sent else 'failed'} to {settings.ALERT_EMAIL}",
     )
 
 
 @router.post(
     "/ml/check-all",
     response_model=list[MLForecastAlertResponse],
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,
 )
 async def check_all_ml_forecast_alerts(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """Check every latest city forecast and send early warning alerts where needed."""
     latest_by_city = {}
-    records = db.query(EnvironmentalData).order_by(
-        EnvironmentalData.city,
-        EnvironmentalData.timestamp.desc()
-    ).all()
+    records = (
+        db.query(EnvironmentalData)
+        .order_by(EnvironmentalData.city, EnvironmentalData.timestamp.desc())
+        .all()
+    )
 
     for record in records:
         latest_by_city.setdefault(record.city, record)
@@ -271,9 +269,7 @@ async def check_all_ml_forecast_alerts(
     results = []
     for city in latest_by_city:
         result = await check_ml_forecast_alert(
-            city=city,
-            db=db,
-            current_user=current_user
+            city=city, db=db, current_user=current_user
         )
         results.append(result)
 
@@ -281,14 +277,12 @@ async def check_all_ml_forecast_alerts(
 
 
 @router.post(
-    "/check-all",
-    response_model=list[AlertResponse],
-    status_code=status.HTTP_200_OK
+    "/check-all", response_model=list[AlertResponse], status_code=status.HTTP_200_OK
 )
 async def check_all_cities_alerts(
     request: MultipleAlertsRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Check multiple cities and send alerts for those exceeding threshold"""
     results = []
@@ -300,9 +294,7 @@ async def check_all_cities_alerts(
         if city and aqi_value:
             alert_request = AlertCheckRequest(city=city, aqi_value=aqi_value)
             result = await check_and_send_alert(
-                request=alert_request,
-                db=db,
-                current_user=current_user
+                request=alert_request, db=db, current_user=current_user
             )
             results.append(result)
 
@@ -312,19 +304,22 @@ async def check_all_cities_alerts(
 @router.get(
     "/history",
     response_model=list[AlertHistoryResponse],
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,
 )
 async def get_alert_history(
     days: int = 7,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Get alert history for the specified number of days"""
-    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
-    alerts = db.query(AlertHistory).filter(
-        AlertHistory.last_alert_time >= cutoff_date
-    ).order_by(AlertHistory.last_alert_time.desc()).all()
+    alerts = (
+        db.query(AlertHistory)
+        .filter(AlertHistory.last_alert_time >= cutoff_date)
+        .order_by(AlertHistory.last_alert_time.desc())
+        .all()
+    )
 
     return alerts
 
@@ -332,26 +327,28 @@ async def get_alert_history(
 @router.get(
     "/history/{city}",
     response_model=list[AlertHistoryResponse],
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,
 )
 async def get_city_alert_history(
     city: str,
     days: int = 7,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Get alert history for a specific city"""
-    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
-    alerts = db.query(AlertHistory).filter(
-        AlertHistory.city == city,
-        AlertHistory.last_alert_time >= cutoff_date
-    ).order_by(AlertHistory.last_alert_time.desc()).all()
+    alerts = (
+        db.query(AlertHistory)
+        .filter(AlertHistory.city == city, AlertHistory.last_alert_time >= cutoff_date)
+        .order_by(AlertHistory.last_alert_time.desc())
+        .all()
+    )
 
     if not alerts:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No alert history found for city: {city}"
+            detail=f"No alert history found for city: {city}",
         )
 
     return alerts
