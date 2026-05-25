@@ -405,8 +405,8 @@ class APIClient {
       (response) => response,
       async (error) => {
         const config = error.config
-        if (!config || config._retryCount >= 4) {
-          if (config?._retryCount >= 4) {
+        if (!config || config._retryCount >= 5) {
+          if (config?._retryCount >= 5) {
             this._isWakingUp = false
             window.dispatchEvent(new CustomEvent('backend:failed'))
           }
@@ -424,10 +424,10 @@ class APIClient {
             new CustomEvent('backend:waking', { detail: { attempt: config._retryCount } })
           )
 
-          const delay = Math.min(1000 * Math.pow(2, config._retryCount), 15000) // exp backoff, max 15s
+          const delay = Math.min(1000 * Math.pow(2, config._retryCount), 20000) // exp backoff, max 20s
           await new Promise((res) => setTimeout(res, delay))
 
-          if (config._retryCount >= 4) {
+          if (config._retryCount >= 5) {
             this._isWakingUp = false
             window.dispatchEvent(new CustomEvent('backend:failed'))
           }

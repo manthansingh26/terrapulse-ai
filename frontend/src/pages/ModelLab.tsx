@@ -102,7 +102,7 @@ const ModelLab: React.FC = () => {
 
   const loadModelLab = async () => {
     const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 45000)
+    const timeout = window.setTimeout(() => controller.abort(), 90000) // 90s for Model Lab (Render cold start can take 60s)
     const config = { signal: controller.signal }
 
     try {
@@ -139,7 +139,7 @@ const ModelLab: React.FC = () => {
 
   const handleRetrain = async () => {
     const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 45000)
+    const timeout = window.setTimeout(() => controller.abort(), 90000) // 90s for training (can take a while)
     const config = { signal: controller.signal }
 
     try {
@@ -172,7 +172,7 @@ const ModelLab: React.FC = () => {
 
   const handleCheckAlerts = async () => {
     const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 45000)
+    const timeout = window.setTimeout(() => controller.abort(), 60000) // 60s for alert checking
 
     try {
       setIsCheckingAlerts(true)
@@ -316,9 +316,10 @@ const ModelLab: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin" />
-        <p className="text-sm text-gray-500 font-medium">Loading ML model data</p>
-        <p className="text-xs text-gray-400">
-          Backend is waking up - this takes about 30s on first load
+        <p className="text-sm text-gray-600 font-medium">Loading ML model data</p>
+        <p className="text-xs text-gray-500 max-w-md text-center">
+          Backend is waking up from hibernation - first load takes about 30-60 seconds. 
+          This is normal on Render&apos;s free tier.
         </p>
       </div>
     )
@@ -330,48 +331,34 @@ const ModelLab: React.FC = () => {
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-2xl font-bold text-red-600">
           !
         </div>
-        <h3 className="text-xl font-semibold text-gray-800">Model Lab Unavailable</h3>
-        <p className="text-sm text-gray-500 max-w-md">{error}</p>
-        <p className="text-xs text-gray-400">
-          Render free tier sleeps after inactivity. First load can take 30-60s.
-        </p>
-        <button
-          onClick={() => void loadModelLab()}
-          className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 active:scale-95 transition-all"
-        >
-          Retry
-        </button>
+        <h3 className="text-xl font-semibold text-gray-800">Model Lab Temporarily Unavailable</h3>
+        <p className="text-sm text-gray-600 max-w-md">{error}</p>
+        <div className="mt-2 rounded-lg bg-blue-50 border border-blue-200 p-4 max-w-md">
+          <p className="text-xs text-blue-900 font-semibold">💡 Tip:</p>
+          <p className="text-xs text-blue-800 mt-1">
+            The backend is on Render&apos;s free tier and sleeps after inactivity. 
+            First load takes 30-60 seconds. This is normal.
+          </p>
+        </div>
+        <div className="flex gap-3 mt-4">
+          <button
+            onClick={() => void loadModelLab()}
+            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 active:scale-95 transition-all"
+          >
+            Retry Loading
+          </button>
+          <a
+            href="/dashboard"
+            className="px-6 py-2.5 bg-gray-200 text-gray-800 rounded-lg text-sm font-semibold hover:bg-gray-300 active:scale-95 transition-all"
+          >
+            Go to Dashboard
+          </a>
+        </div>
       </div>
     )
   }
 
-  if (false && isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-64 gap-4">
-        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-        <p className="text-sm text-gray-500">Loading ML model data…</p>
-        <p className="text-xs text-gray-400">
-          (First load takes ~30s while the server wakes up)
-        </p>
-      </div>
-    )
-  }
 
-  if (false && error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-64 gap-4 text-center px-6">
-        <div className="text-4xl">⚠️</div>
-        <h3 className="text-lg font-semibold text-gray-800">Model Lab unavailable</h3>
-        <p className="text-sm text-gray-500 max-w-sm">{error}</p>
-        <button
-          onClick={() => void loadModelLab()}
-          className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 font-medium"
-        >
-          Refresh Page
-        </button>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -823,11 +810,11 @@ const ModelLab: React.FC = () => {
           </div>
         </div>
 
-         <div className="mt-5 overflow-x-auto -mx-5 px-5 sm:overflow-visible sm:mx-0 sm:px-0">
-           <table className="w-full min-w-[860px] sm:min-w-full text-sm">
-             <thead>
-               <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-                 <th className="px-3 py-3">Run ID</th>
+        <div className="mt-5 overflow-x-auto -mx-5 px-5 sm:overflow-visible sm:mx-0 sm:px-0">
+          <table className="w-full min-w-[860px] sm:min-w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                <th className="px-3 py-3">Run ID</th>
                 <th className="px-3 py-3">Trained</th>
                 <th className="px-3 py-3">Validation</th>
                 <th className="px-3 py-3">Rows</th>
@@ -923,18 +910,18 @@ const ModelLab: React.FC = () => {
           </div>
         )}
 
-         <div className="mt-5 overflow-x-auto -mx-5 px-5 sm:overflow-visible sm:mx-0 sm:px-0">
-           <table className="w-full min-w-[860px] sm:min-w-full text-sm">
-             <thead>
-               <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-                 <th className="px-3 py-3">City</th>
-                 <th className="px-3 py-3">Sample AQI</th>
-                 <th className="px-3 py-3">Predicted AQI</th>
-                 <th className="px-3 py-3">Change</th>
-                 <th className="px-3 py-3">Risk</th>
-                 <th className="px-3 py-3">Confidence</th>
-               </tr>
-             </thead>
+        <div className="mt-5 overflow-x-auto -mx-5 px-5 sm:overflow-visible sm:mx-0 sm:px-0">
+          <table className="w-full min-w-[860px] sm:min-w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                <th className="px-3 py-3">City</th>
+                <th className="px-3 py-3">Sample AQI</th>
+                <th className="px-3 py-3">Predicted AQI</th>
+                <th className="px-3 py-3">Change</th>
+                <th className="px-3 py-3">Risk</th>
+                <th className="px-3 py-3">Confidence</th>
+              </tr>
+            </thead>
             <tbody>
               {forecasts.map((forecast) => {
                 const riskTone = riskClass[forecast.risk_level as keyof typeof riskClass] || riskClass.Fair
